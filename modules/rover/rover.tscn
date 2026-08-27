@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://modules/rover/rover_controller.gd" id="1"]
+
+[node name="Rover" type="Node2D"]
+z_index = 6
+script = ExtResource("1")

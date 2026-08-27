@@ -1,0 +1,8 @@
+{
+	"cell_snap": 32,
+	"map_margin": 28,
+	"min_crystal_dist": 120,
+	"vessel_clearance": 175,
+	"node_clearance": 50,
+	"overlap_pad": 12
+}

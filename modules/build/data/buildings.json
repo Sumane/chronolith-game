@@ -1,0 +1,27 @@
+{
+	"wall": {
+		"name": "Regolith Rampart", "desc": "Cheap blocker. Trooper chow.",
+		"cost": {"REGOLITH": 12}, "hp": 140, "radius": 26,
+		"power_draw": 0, "power_gen": 0, "range": 0, "damage": 6, "fire_interval": 0.0,
+		"color": "#8a6b4f"
+	},
+	"turret": {
+		"name": "Kinetic Turret", "desc": "Hitscan slug thrower. Needs power.",
+		"cost": {"SCRAP": 15, "REGOLITH": 5}, "hp": 90, "radius": 20,
+		"power_draw": 2, "power_gen": 0, "range": 250.0, "damage": 6, "fire_interval": 0.5,
+		"color": "#c8a24a"
+	},
+	"solar": {
+		"name": "Solar Array", "desc": "+3 power. Nights and storms cut output.",
+		"cost": {"SCRAP": 10, "REGOLITH": 8}, "hp": 70, "radius": 24,
+		"power_draw": 0, "power_gen": 3, "range": 0, "damage": 0, "fire_interval": 0.0,
+		"color": "#3f5a8a"
+	},
+	"scanner": {
+		"name": "Scanner Mast", "desc": "Reveals cloaked Stalkers in radius.",
+		"cost": {"SCRAP": 12, "RARE": 4}, "hp": 60, "radius": 18,
+		"power_draw": 1, "power_gen": 0, "range": 0, "damage": 0, "fire_interval": 0.0,
+		"scan_radius": 270.0,
+		"color": "#59c2d6"
+	}
+}

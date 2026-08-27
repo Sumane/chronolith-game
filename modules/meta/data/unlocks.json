@@ -1,0 +1,6 @@
+{
+	"unlocks": [
+		{"id": "plating1", "name": "Hull Plating I", "desc": "+35 rover integrity, every timeline.", "cost": {"SHARDS": 10}, "effect": {"stat": "hp_flat", "value": 35}},
+		{"id": "salvage_rig", "name": "Salvage Rig", "desc": "+25% harvest yield, every timeline.", "cost": {"SHARDS": 16}, "effect": {"stat": "harvest_mult", "value": 0.25}}
+	]
+}

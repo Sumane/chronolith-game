@@ -1,0 +1,41 @@
+[gd_scene load_steps=13 format=3]
+
+[ext_resource type="Script" path="res://core/main.gd" id="1"]
+[ext_resource type="Script" path="res://core/game_state.gd" id="2"]
+[ext_resource type="Script" path="res://core/bus_logger.gd" id="3"]
+[ext_resource type="PackedScene" path="res://modules/environment/environment.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://modules/chronolith/chronolith.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://modules/build/build.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://modules/waves/waves.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://modules/rover/rover.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://modules/economy/economy.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://modules/meta/meta.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://modules/ui/ui.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://modules/audio/audio.tscn" id="12"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1")
+
+[node name="GameState" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="BusLogger" type="Node" parent="."]
+script = ExtResource("3")
+
+[node name="Environment" parent="." instance=ExtResource("4")]
+
+[node name="Chronolith" parent="." instance=ExtResource("5")]
+
+[node name="BuildLayer" parent="." instance=ExtResource("6")]
+
+[node name="Waves" parent="." instance=ExtResource("7")]
+
+[node name="Rover" parent="." instance=ExtResource("8")]
+
+[node name="Economy" parent="." instance=ExtResource("9")]
+
+[node name="Meta" parent="." instance=ExtResource("10")]
+
+[node name="UILayer" parent="." instance=ExtResource("11")]
+
+[node name="AudioLayer" parent="." instance=ExtResource("12")]

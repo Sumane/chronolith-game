@@ -1,0 +1,20 @@
+{
+	"trooper": {
+		"hp": 32, "speed": 58.0, "radius": 13.0, "damage": 6,
+		"attack_interval": 0.85,
+		"salvage": {"SCRAP": 3},
+		"color": "#7da05a"
+	},
+	"stalker": {
+		"hp": 24, "speed": 92.0, "radius": 11.0, "damage": 5,
+		"attack_interval": 0.9, "cloak": true,
+		"salvage": {"SCRAP": 4},
+		"color": "#9fb06a"
+	},
+	"burrower": {
+		"hp": 50, "speed": 46.0, "underground_speed": 66.0, "radius": 16.0, "damage": 9,
+		"attack_interval": 1.0, "burrows": true,
+		"salvage": {"SCRAP": 5, "RARE": 1},
+		"color": "#b0785a"
+	}
+}

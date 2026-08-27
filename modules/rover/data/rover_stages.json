@@ -1,0 +1,8 @@
+{
+	"stages": [
+		{"stage": 0, "name": "NASA", "max_hp": 100, "speed": 175.0, "fire_interval": 0.33, "damage": 7, "range": 270.0},
+		{"stage": 1, "name": "HYBRID", "max_hp": 135, "speed": 235.0, "fire_interval": 0.22, "damage": 8, "range": 300.0}
+	],
+	"harvest_rate": 6.0,
+	"harvest_flush_interval": 0.6
+}

@@ -1,0 +1,20 @@
+{
+	"1": {
+		"groups": [
+			{"type": "trooper", "count": 6, "interval": 1.4, "delay": 1.0}
+		]
+	},
+	"2": {
+		"groups": [
+			{"type": "trooper", "count": 9, "interval": 1.2, "delay": 0.8},
+			{"type": "stalker", "count": 3, "interval": 2.0, "delay": 5.0}
+		]
+	},
+	"3": {
+		"groups": [
+			{"type": "trooper", "count": 12, "interval": 1.0, "delay": 0.5},
+			{"type": "stalker", "count": 4, "interval": 1.8, "delay": 4.0},
+			{"type": "burrower", "count": 3, "interval": 3.0, "delay": 8.0}
+		]
+	}
+}

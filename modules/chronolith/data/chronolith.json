@@ -1,0 +1,8 @@
+{
+	"integrity": 500,
+	"bubble_radius": 245.0,
+	"slow_factor": 0.55,
+	"rewind_duration": 5.0,
+	"rewind_cooldown": 40.0,
+	"buffer_hz": 10.0
+}

@@ -1,0 +1,23 @@
+{
+	"fragments": [
+		{
+			"id": "f1",
+			"title": "FRAGMENT 01 — WHITE LIGHT",
+			"text": "...the ambush came out of a sunless quadrant. I remember the hull singing, then splitting. I remember crawling — not walking, CRAWLING — across red sand toward a sleeping machine with six legs and a camera eye. The upload was supposed to be clean. It was not. Something of me is still out there, scattered in the static.",
+			"purge_grant": {"REGOLITH": 40, "SCRAP": 25}
+		},
+		{
+			"id": "f2",
+			"title": "FRAGMENT 02 — THE CUSTODIAN",
+			"text": "I was not carrying the Chronolith. I was RAISING it. It hums in a frequency my kind uses for lullabies. The Reptilians call it a weapon because they cannot imagine anything that is merely older than their hunger. NASA believes this unit is drilling sample site B7. Let them believe. The drill makes a passable mining arm.",
+			"purge_grant": {"REGOLITH": 55, "SCRAP": 30}
+		},
+		{
+			"id": "f3",
+			"title": "FRAGMENT 03 — WHY THE WAR STARTED",
+			"text": "The war did not start over territory, or faith, or even the crystal. It started when the first Reptilian fleet asked the Chronolith a question and it answered with time itself — showed them every empire they would ever burn. They have been trying to take it apart ever since, to make the future small again. I am what stands between the crystal and being made small.",
+			"purge_grant": {"SCRAP": 45, "RARE": 6}
+		}
+	],
+	"repair_bonus_harvest_per_fragment": 0.05
+}

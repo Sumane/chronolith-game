@@ -1,0 +1,4 @@
+{
+	"hybrid_upgrade": {"RARE": 25, "SCRAP": 20},
+	"repair_tick": {"SCRAP": 2}
+}

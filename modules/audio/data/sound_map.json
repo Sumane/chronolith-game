@@ -1,0 +1,12 @@
+{
+	"build_placed": {"f": 520, "d": 0.08, "v": 0.5, "kind": "sq"},
+	"turret_fired": {"f": 880, "d": 0.03, "v": 0.12, "kind": "sq"},
+	"rover_fired": {"f": 700, "d": 0.045, "v": 0.18, "kind": "sq"},
+	"enemy_killed": {"f": 240, "d": 0.12, "v": 0.32, "kind": "sine"},
+	"chronolith_damaged": {"f": 130, "d": 0.22, "v": 0.5, "kind": "sine"},
+	"wave_started": {"f": 175, "d": 0.35, "v": 0.5, "kind": "sq"},
+	"wave_cleared": {"f": 660, "d": 0.28, "v": 0.38, "kind": "sine"},
+	"rewind_window": {"f": 1500, "d": 0.45, "v": 0.45, "kind": "sweep"},
+	"rover_upgraded_ack": {"f": 520, "d": 0.3, "v": 0.4, "kind": "chord"},
+	"memory_event": {"f": 330, "d": 0.5, "v": 0.28, "kind": "sine"}
+}
