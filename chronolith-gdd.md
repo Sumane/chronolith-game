@@ -1,6 +1,13 @@
 # CHRONOLITH
-## Game Design Document — v0.1
+## Game Design Document — v0.2
 *Working title. Base building / tower defence / roguelite.*
+
+> **DECISION (2026-08-27, Marc):** the game is **3D, built in Godot 4.x**.
+> This overrides the earlier "top-down or isometric recommended" note below.
+> The current codebase (`core/` + `modules/`) is a **2D (Node2D) vertical-slice
+> prototype** of the gameplay systems — it is *not* the final presentation.
+> The 3D conversion is the next major work item; see
+> `docs/3D-CONVERSION.md` for the roadmap and `NOTE-3D.md` at the repo root.
 
 ---
 
@@ -11,9 +18,9 @@ A grey alien, ambushed by Reptilian forces, crash-lands on Mars beside a NASA ro
 **One-liner:** *A dying alien's mind inside a NASA rover defends a time-bending crystal against an invading armada — dying only makes him smarter.*
 
 **Genre:** Base building / tower defence / roguelite
-**Perspective:** TBD (top-down or isometric recommended for base readability)
+**Perspective:** **3D** (decided 2026-08-27). Camera: top-down 3D / orbit — see `docs/3D-CONVERSION.md`.
 **Target platform:** TBD (PC first)
-**Engine:** TBD (Godot assumed, consistent with other projects)
+**Engine:** **Godot 4.x** (decided; repo currently targets 4.7 — see `project.godot`)
 
 ### Design Pillars
 1. **Contrast is the fantasy.** Clunky, real-world NASA hardware slowly transcending into precision alien technology. Every upgrade should be *visible* on the rover.
@@ -209,7 +216,7 @@ The planet is neutral and lethal.
 
 ## 13. Open Questions
 
-1. Perspective and camera: top-down, isometric, or third-person hybrid?
+1. ~~Perspective and camera: top-down, isometric, or third-person hybrid?~~ **RESOLVED (2026-08-27): 3D in Godot.** Exact camera angle/dolly and whether the rover is seen from a fixed top-down 3D view or an orbitable third-person view are still open — first answerable once the 3D prototype (see `docs/3D-CONVERSION.md`) exists.
 2. Direct rover combat: how action-heavy? (Twin-stick? Point-and-click abilities?)
 3. Session structure: single long runs vs. save-mid-run?
 4. Scope check: which proposals (§2 Earth transmissions, §5.2 gradient, §6.4 echoes, §7.2 dual trees, §9 Mars faction) make the vertical slice, and which wait?

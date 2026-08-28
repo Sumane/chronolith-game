@@ -62,6 +62,7 @@ func _ready() -> void:
 	Bus.purchase_result.connect(_on_purchase_result)
 	Bus.rewind_window.connect(_on_rewind_window)
 	Bus.meta_bonuses.connect(_on_meta_bonuses)
+	Bus.player_requested_upgrade.connect(_on_upgrade_requested)
 	Bus.scanner_state.connect(func(p: Dictionary) -> void: scanner_masts = p.get("masts", []))
 	Bus.node_depleted.connect(_on_node_depleted)
 
@@ -235,6 +236,9 @@ func _on_purchase_result(payload: Dictionary) -> void:
 	_body.reset(stage)
 	Bus.rover_upgraded_ack.emit({"stage": stage})
 	Bus.toast.emit({"text": "ASCENSION I — grey tech converges on the rover chassis", "color": "#59e6ff"})
+
+func _on_upgrade_requested(_payload: Dictionary) -> void:
+	request_upgrade()
 
 func request_upgrade() -> void:
 	if stage != 0 or destroyed:

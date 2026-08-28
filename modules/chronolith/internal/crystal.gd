@@ -3,6 +3,11 @@ extends Node2D
 
 var _flash := 0.0
 var _pulse := 0.0
+var _bubble_radius := 245.0
+
+func _ready() -> void:
+	var cfg: Dictionary = Contracts.load_json("res://modules/chronolith/data/chronolith.json")
+	_bubble_radius = float(cfg.get("bubble_radius", 245))
 
 func reset() -> void:
 	_flash = 0.0
@@ -19,8 +24,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var cfg: Dictionary = Contracts.load_json("res://modules/chronolith/data/chronolith.json")
-	var radius := float(cfg.get("bubble_radius", 245))
+	var radius := _bubble_radius
 	# --- dilation bubble ---
 	var breathe := radius + 4.0 * sin(_pulse * 0.7)
 	draw_circle(Vector2.ZERO, breathe, Color(0.35, 0.9, 1.0, 0.05))

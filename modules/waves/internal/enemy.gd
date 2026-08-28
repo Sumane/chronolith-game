@@ -42,7 +42,7 @@ var layout: Array = []
 var rover_pos := Vector2(960, 780)
 var rover_alive := true
 
-func setup(id: int, type: String, def: Dictionary, spawn_pos: Vector2) -> void:
+func setup(id: int, type: String, def: Dictionary, spawn_pos: Vector2, holes: Array = []) -> void:
 	eid = id
 	etype = type
 	cfg = def
@@ -57,7 +57,6 @@ func setup(id: int, type: String, def: Dictionary, spawn_pos: Vector2) -> void:
 	position = spawn_pos
 	if bool(def.get("burrows", false)):
 		state = STATE_UNDERGROUND
-		var holes: Array = get_parent().tunnel_holes if get_parent() != null else []
 		if holes.is_empty():
 			target_hole = crystal_pos + Vector2.from_angle(randf() * TAU) * 160.0
 		else:

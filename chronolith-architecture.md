@@ -1,7 +1,7 @@
 # CHRONOLITH — Modular Architecture Framework
 *How the game is split so every module can be built, tested, and broken independently.*
 
-Engine assumption: **Godot 4.x**. Adjust folder syntax if that changes, but the principles are engine-agnostic.
+Engine: **Godot 4.x (4.7 in this repo)**. **Presentation is 3D** (decided 2026-08-27, see `NOTE-3D.md` and `docs/3D-CONVERSION.md`); the code that currently ships is a 2D (Node2D) vertical-slice prototype of the same module boundaries. The EventBus/contracts architecture below is presentation-agnostic and survives the 3D conversion — the `_controller.gd` doors and `data/` files stay, the `internal/` visual layer is what gets rebuilt in 3D.
 
 ---
 

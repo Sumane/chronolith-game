@@ -109,6 +109,9 @@ func _physics_process(delta: float) -> void:
 	while not spawn_queue.is_empty() and float(spawn_queue[0]["at_time"]) <= wave_clock:
 		var spec: Dictionary = spawn_queue.pop_front()
 		_spawn(str(spec["type"]))
+	for e: Enemy in get_children(): # keep per-enemy world refs fresh each tick
+		if is_instance_valid(e) and e is Enemy:
+			e.layout = layout
 	_emit_positions()
 	_progress_acc += delta
 	if _progress_acc >= 0.5:
@@ -138,7 +141,7 @@ func _spawn(type: String) -> void:
 		2: p = Vector2(randf_range(inset, map_size.x - inset), map_size.y + 30)
 		3: p = Vector2(-30, randf_range(inset, map_size.y - inset))
 	var e := Enemy.new()
-	e.setup(next_enemy_id, type, def, p)
+	e.setup(next_enemy_id, type, def, p, tunnel_holes)
 	e.position = p
 	add_child(e)
 	Bus.enemy_spawned.emit({"enemy_id": e.eid, "type": type, "x": p.x, "y": p.y})

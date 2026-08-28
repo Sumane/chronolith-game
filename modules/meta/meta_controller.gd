@@ -13,6 +13,7 @@ var ledger_cache: Dictionary = {}
 
 var _hub: Control
 var _memory_dialog: Control
+var _pending_unlocks: Dictionary = {} # req_id -> unlock_id (results only echo req_id)
 var _used_this_run := false
 var _current_fragment: Dictionary = {}
 var _fragment_index_offset := 0
@@ -170,18 +171,25 @@ func _broadcast_bonuses() -> void:
 func _request_unlock(id: String) -> void:
 	for u: Dictionary in unlocks_data:
 		if str(u.get("id", "")) == id:
+			var req_id := "unlock_%s_%d" % [id, randi()]
+			_pending_unlocks[req_id] = id
 			Bus.purchase_request.emit({
-				"req_id": "unlock_%s_%d" % [id, randi()],
+				"req_id": req_id,
 				"cost": u.get("cost", {}),
 				"tag": "unlock",
-				"unlock_id": id,
 			})
 			return
 
 func _on_purchase_result(payload: Dictionary) -> void:
-	if str(payload.get("tag", "")) != "unlock" or not bool(payload.get("ok", false)):
+	if str(payload.get("tag", "")) != "unlock":
 		return
-	var id := str(payload.get("unlock_id", ""))
+	var req_id := str(payload.get("req_id", ""))
+	if not _pending_unlocks.has(req_id):
+		return
+	var id := str(_pending_unlocks[req_id])
+	_pending_unlocks.erase(req_id)
+	if not bool(payload.get("ok", false)):
+		return
 	if id != "" and not (id in unlocked_ids):
 		unlocked_ids.append(id)
 		store.data["unlocked_ids"] = unlocked_ids

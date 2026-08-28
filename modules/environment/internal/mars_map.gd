@@ -28,17 +28,20 @@ func _process(delta: float) -> void:
 func _build_background() -> void:
 	var w := int(_map.get("map_w", 1920))
 	var h := int(_map.get("map_h", 1280))
-	var img := Image.create(w, h, false, Image.FORMAT_RGB8)
+	# Perf: render at 1/4 horizontal resolution (the original loop painted 4-px
+	# blocks anyway), then nearest-neighbor upscale — 4x fewer iterations.
+	var iw := int(ceilf(float(w) / 4.0))
+	var img := Image.create(iw, h, false, Image.FORMAT_RGB8)
 	var base := Color("6e4a33")
 	for y in h:
 		var t := float(y) / float(h)
 		var row := base.lerp(Color("8a5a3a"), t * 0.55)
-		for x in range(0, w, 4):
-			var c := row * (0.92 + 0.16 * sin(float(x) * 0.031 + float(y) * 0.017))
+		for gx in iw:
+			var fx := float(gx * 4)
+			var c := row * (0.92 + 0.16 * sin(fx * 0.031 + float(y) * 0.017))
 			c = c.lerp(Color("54382a"), randf() * 0.22)
-			for dx in 4:
-				if x + dx < w:
-					img.set_pixel(x + dx, y, c)
+			img.set_pixel(gx, y, c)
+	img.resize(w, h, Image.INTERPOLATE_NEAREST)
 	_bg = ImageTexture.create_from_image(img)
 
 func _draw() -> void:

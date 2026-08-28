@@ -18,6 +18,7 @@ func _ready() -> void:
 	Bus.grant_resources.connect(_on_grant)
 	Bus.purchase_request.connect(_on_purchase_request)
 	Bus.wave_cleared.connect(_on_wave_cleared)
+	Bus.meta_loaded.connect(_on_meta_loaded)
 
 func _process(_delta: float) -> void:
 	if _queue.is_empty():
@@ -28,11 +29,17 @@ func _process(_delta: float) -> void:
 func _on_run_started(_payload: Dictionary) -> void:
 	var start: Variant = Contracts.load_json("res://modules/economy/data/starting_resources.json")
 	for key in Contracts.RESOURCE_KEYS:
-		ledger[key] = 0
+		if key != "SHARDS" and key != "DNA": # meta currencies persist across runs
+			ledger[key] = 0
 	if typeof(start) == TYPE_DICTIONARY:
 		for key: String in start:
 			if key != "SHARDS" and key in ledger: # shards are meta currency; keep
 				ledger[key] = int(start[key])
+	_snapshot()
+
+func _on_meta_loaded(payload: Dictionary) -> void:
+	# banked shards from the save file seed the ledger (meta → economy, one-way)
+	ledger["SHARDS"] = int(payload.get("SHARDS", int(ledger.get("SHARDS", 0))))
 	_snapshot()
 
 func _on_run_ended(payload: Dictionary) -> void:

@@ -24,6 +24,8 @@ var phase_id: int = Contracts.Phase.HUB
 var solar_mult := 1.0
 
 var _pending: Dictionary = {} # req_id -> {type,x,y}
+var _repair_pending: Dictionary = {} # req_id -> building_id (results only echo req_id)
+var _repair_cost: Dictionary = {"SCRAP": 2}
 var _repair_req_counter := 0
 var _repair_cd := 0.0
 var _ghost: Node2D
@@ -39,6 +41,8 @@ func _ready() -> void:
 	var r: Variant = Contracts.load_json("res://modules/build/data/grid_rules.json")
 	if typeof(r) == TYPE_DICTIONARY:
 		rules = r
+	var c: Variant = Contracts.load_json("res://modules/economy/data/costs.json") # Economy owns cost data (architecture §4)
+	_repair_cost = c.get("repair_tick", {"SCRAP": 2}) if typeof(c) == TYPE_DICTIONARY else {"SCRAP": 2}
 	_ghost = Ghost.new()
 	_ghost.name = "Ghost"
 	_ghost.z_index = 30
@@ -142,11 +146,16 @@ func _on_purchase_result(payload: Dictionary) -> void:
 			else:
 				Bus.toast.emit({"text": "Insufficient resources", "color": "#ff8a5a"})
 		"repair":
-			if bool(payload.get("ok", false)) and payload.has("building_id"):
-				for b: Building in buildings:
-					if is_instance_valid(b) and b.bid == int(payload["building_id"]):
-						b.heal(20)
-						break
+			if not bool(payload.get("ok", false)):
+				return
+			var bid := int(_repair_pending.get(req_id, -1))
+			_repair_pending.erase(req_id)
+			if bid < 0:
+				return
+			for b: Building in buildings:
+				if is_instance_valid(b) and b.bid == bid:
+					b.heal(20)
+					break
 
 func _spawn_building(type: String, x: float, y: float) -> void:
 	var def: Dictionary = defs.get(type, {})
@@ -279,12 +288,9 @@ func _update_repair(delta: float) -> void:
 		return
 	_repair_cd = 0.4
 	_repair_req_counter += 1
-	Bus.purchase_request.emit({
-		"req_id": "repair_%d" % _repair_req_counter,
-		"cost": {"SCRAP": 2},
-		"tag": "repair",
-		"building_id": best.bid,
-	})
+	var req_id := "repair_%d" % _repair_req_counter
+	_repair_pending[req_id] = best.bid
+	Bus.purchase_request.emit({"req_id": req_id, "cost": _repair_cost, "tag": "repair"})
 
 func _on_enemy_attack(payload: Dictionary) -> void:
 	var target := str(payload.get("target", ""))
