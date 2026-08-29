@@ -250,7 +250,7 @@ func _update_turrets(delta: float) -> void:
 		if b.fire_cd > 0.0:
 			continue
 		var best_entry: Array = []
-		var best_d: float = b.range * b.range
+		var best_d: float = b.range_r * b.range_r
 		for entry: Array in enemies_latest:
 			if not _is_targetable(entry):
 				continue

@@ -34,6 +34,15 @@ func frames(n: int) -> void:
 		await get_tree().physics_frame
 
 func _run() -> void:
+	# Deterministic start: a save persisted by a previous run can pre-own
+	# unlocks (then the hub purchase check below becomes a silent no-op).
+	var f0 := FileAccess.open("user://chronolith_save.json", FileAccess.WRITE)
+	if f0 != null:
+		f0.store_string(JSON.stringify({
+			"version": 1, "shards": 0, "dna": 0, "unlocked_ids": [],
+			"memories_repaired": 0, "memories_seen": 0, "runs_completed": 0, "best_sol": 0,
+		}, "\t"))
+		f0.close()
 	await get_tree().process_frame
 	print("== CHRONOLITH smoke ==")
 
@@ -170,14 +179,14 @@ func _run() -> void:
 	check(not get_tree().paused, "memory resolve unpauses timeline")
 
 	# ---- 11. second run: meta currency persists, in-run resources reset
-	var ledger_now := {}
-	Bus.resource_changed.connect(func(p: Dictionary) -> void: ledger_now = p.get("ledger", {}))
+	var ledger_now := {"ledger": {}} # Dictionary holder — reassigning a captured
+	Bus.resource_changed.connect(func(p: Dictionary) -> void: ledger_now["ledger"] = p.get("ledger", {}))
 	await frames(2)
-	var shard_before := int(ledger_now.get("SHARDS", 0))
+	var shard_before := int(ledger_now["ledger"].get("SHARDS", 0))
 	Bus.hub_start_requested.emit({})
 	await frames(5)
-	check(int(ledger_now.get("SHARDS", -1)) == shard_before, "banked shards survive run start (%d)" % shard_before)
-	check(int(ledger_now.get("REGOLITH", -1)) == 40 and int(ledger_now.get("SCRAP", -1)) == 25, "in-run resources reset on run start")
+	check(int(ledger_now["ledger"].get("SHARDS", -1)) == shard_before, "banked shards survive run start (%d)" % shard_before)
+	check(int(ledger_now["ledger"].get("REGOLITH", -1)) == 40 and int(ledger_now["ledger"].get("SCRAP", -1)) == 25, "in-run resources reset on run start")
 
 	# ---- 12. meta_loaded handler seeds the ledger (boot path)
 	var econ: Node = main.get_node("Economy")

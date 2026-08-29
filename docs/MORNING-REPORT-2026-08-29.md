@@ -53,35 +53,51 @@ pays for plating after ~1–2 wins. Left the data files untouched.
   the same test step (see below). Latest status will be appended to this file or in
   the git log.
 
-## The crashes — what I found (asked about this morning)
+## The crashes — root cause found and fixed (asked about this morning)
 
 1. **Godot segfault (early, solved)**: the DSH file sandbox blocked Godot's default
    user dir (`~/.local/share/godot`) → null-deref on log-file open → SIGSEGV.
    Workaround: run all headless Godot with
    `XDG_DATA_HOME=/home/marc/AI/Chronolith-Game/.xdg` (inside the workspace).
-2. **Recurring OOMs (the "you crashed" loop)**: kernel log shows ~6 OOM-kill events
-   overnight, **all victims were `godot`** (my test runs). The sandbox marks spawned
-   processes `oom_score_adj=200`, so they die first when memory peaks. The llama.cpp
-   server (this agent's model) holds a **fixed ~10 GB KV cache** for the 160k context
-   — non-negotiable since the context size can't change — plus Chrome; the machine
-   has 30 GB RAM. When those peak together, the kernel OOMs and the session's
-   in-flight background work dies with it. The llama server itself never died
-   (10+ h uptime).
-3. **Mitigations in place**: every step committed to git (a crash loses minutes, not
-   work); logs written in the workspace, not /tmp; context kept lean; an on-disk RSS
-   probe (`rss_probe.sh` → `.rss-probe`) is sampling Godot's real memory to confirm
-   whether Godot itself is ballooning (one OOM reported 17.9 GB RSS, which would be
-   a real leak) or just a sacrificial victim.
-4. **Suggested long-term levers (your side, none require changing the context
-   window)**: grow swap (8→16 GB) as the OOM cushion; keep Chrome light; optionally
-   auto-restart the llama server (loop in `run.sh`) so even a server-side blip is a
-   2-second dip instead of a session death.
+2. **Recurring OOMs (the "you crashed" loop) — SOLVED, real root cause found.**
+   The earlier "Godot is a sacrificial OOM victim" theory was wrong. The smoke-test
+   process genuinely ballooned to 20–25 GB, and the OOM kills were correct behavior:
+   - **The game itself does not leak.** Idle-game and live-combat RSS probes stayed
+     flat at ~118 MB for 75+ s of active play. Your normal sessions were never at risk.
+   - **The bug**: `hud.gd` capped the toast stack with
+     `while _toasts.get_child_count() > 5: _toasts.get_child(0).queue_free()`.
+     `queue_free()` is *deferred* (the child is removed at end of frame), so while the
+     loop ran the child count never dropped — with 6 toasts alive at once the loop
+     spun forever. That spin (a) stalled the main loop — the "stuck at step 8" freeze,
+     physics frames and even `process_always` timers stopped firing — and (b) churning
+     small allocations per iteration fragmented the heap, so RSS climbed ~370 MB/s
+     until the process died.
+   - **The trigger**: 6+ concurrent toasts. The smoke test overlaps intro toasts, the
+     CALM/Earth-TX/ASSAULT toasts, kill/rewind toasts (4–6 s lifetimes) and hit the
+     6th-toast threshold seconds into the run. It is also reachable in real play
+     (storm + wave + rewind + upgrade toasts stacking), which is why the probe without
+     heavy toast traffic stayed flat.
+   - **The fix** (`modules/ui/internal/hud.gd`): `remove_child()` immediately, then
+     `queue_free()`. Verified with a 6-toast arm and a rewind arm that previously
+     leaked 12+ GB and froze: both now flat at ~118 MB and exit cleanly.
+   - Crash chain for the record: leaking test process → 20+ GB → swap thrash → kernel
+     OOM-kills godot (sandbox `oom_score_adj=200`) and page-faults the 11 GB
+     llama-server → the agent session's in-flight work dies. The llama server
+     (160k context, `--ctx-size 160000`) never died and needs no changes.
+3. **Also fixed along the way**: `tests/smoke_test.gd` step 11 used a lambda that
+   reassigned a captured local (GDScript capture quirk — the update never landed);
+   now a Dictionary holder, like the rest of the suite.
+4. **Long-term process (what makes overnight runs safe now)**: the leak is gone, so a
+   test run is a flat ~118 MB process for its whole life — duration is no longer a
+   memory risk. Standing rules I follow: one Godot process at a time; every run
+   detached with logs + per-2s RSS samples written to workspace dotfiles (a mid-run
+   death loses nothing); everything committed to git immediately; and the suite is
+   re-run after any test-side change. No change to the llama-server/context setup
+   needed. Optional cushion if you want one anyway: swap 8→16 GB.
 
 ## Suggested next steps (when you're around)
 
-1. Look at `rss_probe.sh`'s output (`.rss-probe`) if a Godot-side memory leak
-   confirms — that's the only thing that could be a real game bug.
-2. Run the suite once yourself:
+1. Run the suite once yourself:
    `XDG_DATA_HOME=$PWD/.xdg godot --headless --path . res://tests/smoke_test.tscn`
-   (expect ~45 `ok` lines, exit 0).
-3. First 3D task per the roadmap: Stage 0 proof-of-concept scene.
+   (expect 45 `ok` lines, exit 0 — see the appended run record below).
+2. First 3D task per the roadmap: Stage 0 proof-of-concept scene.
