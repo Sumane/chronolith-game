@@ -1,53 +1,49 @@
-# LEAK HUNT — status (updated 2026-08-29 ~11:00)
+# LEAK HUNT — RESOLVED (2026-08-29 ~12:00)
 
-## Verdict so far
-- The game itself does NOT leak. Idle game (main.tscn as main scene, 120s) and
-  the mem_probe (dynamic boot + 35s active run + 45s HUB idle) are FLAT at ~110-118MB.
-- The SMOKE TEST process leaks ~370MB/s, linearly, until the process ends
-  (plateau = test quit or timeout kill).
-- Leak exists WITHOUT CHRONOLOG (bus logger ruled out; logger now capped at 500 lines anyway).
-- Leak exists with pre-boot script/JSON loads skipped (SMOKE_SKIP=compile,json ruled those out).
-- Leak A (probe + steps 4-8: economy test, spawnwait loop, combat kill, rewind,
-  chronolith kill + HUB wait) reproduces it.
-- LEAK A also froze: after rewind + chronolith kill, the main loop stopped firing
-  physics frames (HUB-wait loop never progressed; 3s process_always timer never fired)
-  while RAM kept growing. Ramp onset (t≈4-5s) ≈ the RESET→HUB transition time (t≈4.8s).
+## Root cause (one bug, two symptoms)
+`modules/ui/internal/hud.gd` `add_toast()` capped the toast stack with:
 
-## Ruled out (all read & bounded)
-- All 15 _process/_physics_process callbacks: main, waves, enemy, chronolith, crystal,
-  rover, rover_body, build, building, hud, input_forwarder, mars_map, audio, economy.
-- All while loops in game code (enemy history, chronolith buffer, rover harvest/rewind
-  buffer, waves spawn, hud toasts) — all bounded.
-- contracts.gd, event_bus.gd, bus_logger.gd, game_state.gd, hub_screen.gd, meta,
-  economy, build, ui, waves, chronolith, rover controllers — all event handlers bounded.
-- Godot binary: official 4.7.1 stable, no ASAN/valgrind.
-- CHRONOLOG bus logger (capped now), pre-boot loads, preload constants,
-  two-process sampling artifact (only in the B arm; A data is valid).
+    while _toasts.get_child_count() > 5:
+        _toasts.get_child(0).queue_free()
 
-## Open question
-What in the test process (not the game) drives a ~370MB/s allocation once
-~4-5s after process start, and (in A) freezes the main loop at the RESET→HUB
-phase transition?
+`queue_free()` is DEFERRED (removal happens at end of frame), so while the loop
+runs the child count never drops. With 6 toasts alive at once the loop spun
+forever:
+- **Freeze**: the main loop stalled mid-frame — physics frames, process timers,
+  even `process_always` timers stopped. (The "stuck at step 8" symptom.)
+- **370 MB/s RSS growth**: the spin churns small per-iteration allocations
+  (GDScript + repeated queue_free error path), fragmenting the heap until the
+  process hit 20–25 GB. That's what the overnight OOMs were; the game itself
+  never leaked (idle and live-combat probes flat at ~118 MB).
 
-## Running now
-tests/leak_matrix.gd — 4 arms, 40s each, sequential (ONE godot at a time),
-boot+run+skip-calm common base + exactly ONE mechanic:
-  1. LEAK_ARM=spawnwait  → spawn-wait while-loop w/ alive_count() per frame
-  2. LEAK_ARM=kill       → one laser kill (rover_fired 9999)
-  3. LEAK_ARM=rewind     → one rewind activation
-  4. LEAK_ARM=killhub    → chronolith kill + HUB-wait while-loop
-Results: .rss-matrix-<arm>, .log-matrix-<arm>. Watcher: job bash-1.
+Trigger = 6+ concurrent toasts (4–6 s lifetimes overlap in the smoke test:
+intro toasts + CALM + Earth-TX + ASSAULT + rewind/kill toasts). Also reachable
+in real play (storm + wave + rewind + upgrade toasts).
 
-## Reading the results
-- Arm ramps → that mechanic (or its combo with the run) is the trigger → subdivide.
-- All flat → the trigger is in something still shared (game-boot-under-test-root?
-  the await pattern? something at ~t=4-5s wall clock) → next: run leak_matrix with
-  NO game booted at all (just the awaits) to test the test-harness itself.
+## Proof chain
+1. `tests/mem_probe` (boot + 35s live assault + 45s HUB idle): flat 118 MB → game clean.
+2. `tests/leak_matrix` (one mechanic per arm, 40s each): spawnwait/kill/killhub flat
+   and exit cleanly; the **rewind arm leaked to 12.8 GB and froze**.
+3. Toast count in the rewind arm hits 6 exactly when the leak ramps (t≈3.6 s:
+   CALM + Earth-TX + ASSAULT + intro#1 + rewind toast alive while intro#2 is added).
+4. Fix = `remove_child()` immediately, then `queue_free()`. Re-ran the toasts arm
+   (6 toasts, no rewind) and the rewind arm: both flat ~118 MB, clean exit.
 
-## Process rules (learned the hard way)
-- NEVER run two godot processes at once (killed a session: A-tail + B overlapped ~40GB).
-- Keep each leak-prone run ≤ ~60s (≤ ~22GB). Session survived single runs to ~24GB.
-- Always: detached (setsid nohup), RSS→workspace file every 2s, logs→workspace file,
-  pgrep -x godot, one watcher job for completion.
-- The 11GB llama-server (PID from /home/marc/Downloads/run.sh) + godot + Chrome is the
-  real budget: 30GB RAM + 8GB swap. One heavy process at a time.
+## Related bugs found on the way
+- `build_controller.gd:253` — `b.range` on a building that only has `range_r`:
+  turrets threw a script error every frame and NEVER FIRED. Fixed.
+- `tests/smoke_test.gd` step 9 was non-deterministic: a save persisted by a
+  previous run pre-owns `plating1`, and `_on_purchase_result` silently skips
+  `unlock_purchased` for already-owned unlocks (it still spends the shards).
+  Test now writes a fresh save before booting.
+- `tests/smoke_test.gd` step 11 used a lambda that reassigned a captured local
+  (GDScript capture quirk — update never landed); now reads the ledger node
+  directly / Dictionary-holder pattern.
+
+## Standing process (overnight-safe)
+- One godot at a time; every run detached, logs + per-2s RSS to workspace dotfiles;
+  commit immediately; XDG_DATA_HOME=$PWD/.xdg is mandatory (sandbox blocks the
+  default user dir).
+- With the leak fixed a test run is a flat ~118 MB process for its whole life —
+  duration is no longer a memory risk. The llama-server (160k ctx) was never the
+  problem and is unchanged.

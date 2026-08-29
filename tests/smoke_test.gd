@@ -179,17 +179,16 @@ func _run() -> void:
 	check(not get_tree().paused, "memory resolve unpauses timeline")
 
 	# ---- 11. second run: meta currency persists, in-run resources reset
-	var ledger_now := {"ledger": {}} # Dictionary holder — reassigning a captured
-	Bus.resource_changed.connect(func(p: Dictionary) -> void: ledger_now["ledger"] = p.get("ledger", {}))
-	await frames(2)
-	var shard_before := int(ledger_now["ledger"].get("SHARDS", 0))
+	# Read the ledger node directly — resource_changed only fires on change,
+	# so a connected listener would miss the current state.
+	var econ: Node = main.get_node("Economy")
+	var shard_before := int(econ.ledger.get("SHARDS", 0))
 	Bus.hub_start_requested.emit({})
 	await frames(5)
-	check(int(ledger_now["ledger"].get("SHARDS", -1)) == shard_before, "banked shards survive run start (%d)" % shard_before)
-	check(int(ledger_now["ledger"].get("REGOLITH", -1)) == 40 and int(ledger_now["ledger"].get("SCRAP", -1)) == 25, "in-run resources reset on run start")
+	check(int(econ.ledger.get("SHARDS", -1)) == shard_before, "banked shards survive run start (%d)" % shard_before)
+	check(int(econ.ledger.get("REGOLITH", -1)) == 40 and int(econ.ledger.get("SCRAP", -1)) == 25, "in-run resources reset on run start")
 
 	# ---- 12. meta_loaded handler seeds the ledger (boot path)
-	var econ: Node = main.get_node("Economy")
 	econ._on_meta_loaded({"SHARDS": 99})
 	await frames(2)
 	check(int(econ.ledger.get("SHARDS", -1)) == 99, "meta_loaded seeds banked shards into ledger")
