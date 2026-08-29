@@ -7,6 +7,8 @@ extends Node
 var fails: Array = []
 var checks := 0
 
+const EnemyScript := preload("res://modules/waves/internal/enemy.gd")
+
 func _ready() -> void:
 	_run()
 
@@ -148,6 +150,93 @@ func _run() -> void:
 	Bus.memory_resolved.emit({"choice": "purge"})
 	await frames(3)
 	check(not get_tree().paused, "memory resolve unpauses timeline")
+
+	# ---- 11. second run: meta currency persists, in-run resources reset
+	var ledger_now := {}
+	Bus.resource_changed.connect(func(p: Dictionary) -> void: ledger_now = p.get("ledger", {}))
+	await frames(2)
+	var shard_before := int(ledger_now.get("SHARDS", 0))
+	Bus.hub_start_requested.emit({})
+	await frames(5)
+	check(int(ledger_now.get("SHARDS", -1)) == shard_before, "banked shards survive run start (%d)" % shard_before)
+	check(int(ledger_now.get("REGOLITH", -1)) == 40 and int(ledger_now.get("SCRAP", -1)) == 25, "in-run resources reset on run start")
+
+	# ---- 12. meta_loaded handler seeds the ledger (boot path)
+	var econ: Node = main.get_node("Economy")
+	econ._on_meta_loaded({"SHARDS": 99})
+	await frames(2)
+	check(int(econ.ledger.get("SHARDS", -1)) == 99, "meta_loaded seeds banked shards into ledger")
+
+	# ---- 13. rover upgrade via the U-key signal (was dead)
+	Bus.grant_resources.emit({"resources": {"SCRAP": 200, "RARE": 50}})
+	await frames(3)
+	var rover: Node = main.get_node("Rover")
+	Bus.player_requested_upgrade.emit({})
+	await frames(6)
+	check(int(rover.stage) == 1, "player_requested_upgrade resolves to stage 1")
+
+	# ---- 14. repair via held E (was dead: result never resolved)
+	var bid_new := {"id": -1}
+	Bus.build_placed.connect(func(p: Dictionary) -> void: bid_new["id"] = int(p["building_id"]), CONNECT_ONE_SHOT)
+	check(build_layer.debug_place("turret", 700, 640), "turret placement accepted (repair test)")
+	await frames(8)
+	var bid := int(bid_new["id"])
+	var bld: Node = null
+	for b: Node in build_layer.buildings:
+		if is_instance_valid(b) and int(b.bid) == bid:
+			bld = b
+	check(bld != null, "turret exists for repair test")
+	if bld != null:
+		Bus.enemy_attack.emit({"enemy_id": -1, "type": "trooper", "target": "B%d" % bid, "damage": 40})
+		await frames(3)
+		var hp_after_damage := int(bld.hp)
+		check(hp_after_damage == 50, "building took 40 damage (hp %d)" % hp_after_damage)
+		Bus.rover_moved.emit({"x": 700, "y": 640, "stage": 1})
+		Bus.input_interact.emit({"pressed": true})
+		await frames(70) # ~1.2s -> at least two 0.4s repair ticks
+		Bus.input_interact.emit({"pressed": false})
+		var hp_after_repair := int(bld.hp)
+		check(hp_after_repair > hp_after_damage, "held E repairs damaged building (hp %d -> %d)" % [hp_after_damage, hp_after_repair])
+
+	# ---- 15. troopers block on walls (layout now injected into enemies)
+	Bus.player_skip_calm.emit({})
+	await frames(5)
+	var cand: Node = null
+	var deadline2 := 600
+	while cand == null and deadline2 > 0:
+		deadline2 -= 1
+		for e: Node in waves.get_children():
+			if is_instance_valid(e) and e.has_method("setup") and str(e.etype) != "stalker" and bool(e.alive):
+				cand = e
+				break
+		await get_tree().physics_frame
+	check(cand != null, "trooper alive for wall-block test")
+	if cand != null and bld != null:
+		await frames(2) # let the controller inject its layout ref
+		cand.position = bld.position + Vector2(0, 24)
+		var blk: Dictionary = cand._blocking_building()
+		check(not blk.is_empty() and int(blk.get("id", -1)) == bid, "trooper detects adjacent wall and chews it")
+
+	# ---- 16. burrowers target the map's tunnel holes (setup param path)
+	check(waves.tunnel_holes.size() > 0, "map tunnel holes loaded from map data")
+	var bur := EnemyScript.new()
+	bur.setup(9001, "burrower", waves.types.get("burrower", {}), Vector2(100, 100), waves.tunnel_holes)
+	check(bur.state == bur.STATE_UNDERGROUND, "burrower starts underground")
+	var matched_hole := false
+	for hh: Dictionary in waves.tunnel_holes:
+		if bur.target_hole == Contracts.vec2_of(hh):
+			matched_hole = true
+	check(matched_hole, "burrower targets an actual map tunnel hole")
+	bur.queue_free()
+
+	# ---- 17. corrupt save is quarantined and recovers to defaults
+	var sf := FileAccess.open("user://chronolith_save.json", FileAccess.WRITE)
+	sf.store_string("{ definitely not json ]]")
+	sf.close()
+	var meta_node: Node = main.get_node("Meta")
+	meta_node.store.load_save()
+	check(int(meta_node.store.data.get("version", -1)) == 1, "corrupt save quarantined -> fresh defaults")
+	meta_node.store.save() # leave a valid save behind for the next boot
 
 	# ---- verdict
 	print("== %d checks, %d failures ==" % [checks, fails.size()])

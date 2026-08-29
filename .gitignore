@@ -3,3 +3,5 @@
 .xdg/
 .godot-user/
 .tmp-probe/
+.testlog
+.rss-probe
