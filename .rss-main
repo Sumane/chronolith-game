@@ -1,0 +1,28 @@
+=== main start: Sat Aug 29 09:20:28 AM BST 2026
+mem: 13Gi used, 16Gi avail
+t=5s rss=108180kB
+t=10s rss=108292kB
+t=15s rss=108292kB
+t=20s rss=108292kB
+t=25s rss=108292kB
+t=30s rss=108292kB
+t=35s rss=108292kB
+t=40s rss=108292kB
+t=45s rss=108292kB
+t=50s rss=108292kB
+t=55s rss=108292kB
+t=60s rss=108292kB
+t=65s rss=108292kB
+t=70s rss=108292kB
+t=75s rss=108292kB
+t=80s rss=108292kB
+t=85s rss=108292kB
+t=90s rss=108292kB
+t=95s rss=108292kB
+t=100s rss=108292kB
+t=105s rss=108292kB
+t=110s rss=108292kB
+t=115s rss=108292kB
+t=120s: godot gone
+=== main end: Sat Aug 29 09:22:29 AM BST 2026
+last log line: 
