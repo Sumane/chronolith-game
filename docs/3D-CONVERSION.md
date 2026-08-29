@@ -1,6 +1,14 @@
 # CHRONOLITH — 3D Conversion Roadmap
 
-**Status:** planning. The decision is recorded 2026-08-27: the game is 3D, in Godot 4.x
+**Status:** Stage 0 POC built (2026-08-29, `scenes/poc/poc.tscn`).
+
+> **Stage 0 feedback (user, 2026-08-29) — fix before Stage 1:**
+> 1. Rover movement feels **inverted** (back/forward swapped from camera view) — flip the W/S → ±Z mapping.
+> 2. Camera is **fixed** — it must **follow the rover**.
+> 3. User is a console gamer: control scheme should be **left stick = move, right stick = camera orbit** (PC: WASD + mouse), with gamepad support.
+> Positives to keep: overall composition reads well; rover and Chronolith are clearly visible.
+
+The decision is recorded 2026-08-27: the game is 3D, in Godot 4.x
 (see `NOTE-3D.md`). Everything currently in the repo is a **2D (Node2D) vertical-slice
 prototype** that proves the systems; this doc is the plan for rebuilding presentation in 3D
 without throwing the proven gameplay architecture away.
