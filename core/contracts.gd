@@ -107,6 +107,18 @@ static func pack_v2(v: Vector2) -> Dictionary:
 	return {"x": v.x, "y": v.y}
 
 
+## 3D seam (3D-CONVERSION.md §3): z is vertical, ground = 0. Payloads that
+## predate the conversion simply omit z and land on the ground plane.
+static func vec3_of(v: Variant) -> Vector3:
+	if typeof(v) == TYPE_DICTIONARY and v.has("x") and v.has("y"):
+		return Vector3(float(v["x"]), float(v.get("z", 0.0)), float(v["y"]))
+	return Vector3.ZERO
+
+
+static func pack_v3(v: Vector3) -> Dictionary:
+	return {"x": v.x, "y": v.z, "z": v.y}
+
+
 static func phase_name(phase: int) -> String:
 	return Phase.keys()[phase]
 
