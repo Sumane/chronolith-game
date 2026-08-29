@@ -4,3 +4,13 @@ MARK t=0 probe_start
 MARK t=200 game_booted phase=0
 MARK t=386 turret_placed
 MARK t=552 assault_started phase=2
+MARK t=45561 mid_run phase=0 enemies_alive=0
+MARK t=45726 chronolith_killed
+MARK t=46727 hub_reached after 1s
+MARK t=76728 hub_idle_30s_done
+== MEM PROBE v2 done ==
+WARNING: 3 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)
+EXIT: s=76 gone

@@ -1,0 +1,16 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+== CHRONOLITH smoke ==
+  skip  compile check (SMOKE_SKIP)
+  skip  json check (SMOKE_SKIP)
+  ok    boots into HUB
+  ok    insufficient purchase rejected
+  ok    placement request accepted (valid site)
+  ok    turret placed via economy purchase
+  ok    sol 1 began
+  ok    phase CALM after run start
+  ok    skip calm → ASSAULT
+  ok    enemies spawned during assault
+  ok    fire event resolves kill + salvage
+  ok    rewind_window emitted on activation
+  ok    chronolith destruction ends run

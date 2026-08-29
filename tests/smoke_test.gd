@@ -7,9 +7,18 @@ extends Node
 var fails: Array = []
 var checks := 0
 
+# Memory-bisect support: SMOKE_SKIP=compile,json,combat skips sections.
+var _skip: Array = []
+
+func _skipping(tag: String) -> bool:
+	return _skip.has(tag)
+
 const EnemyScript := preload("res://modules/waves/internal/enemy.gd")
 
 func _ready() -> void:
+	var skip_env := OS.get_environment("SMOKE_SKIP")
+	if skip_env != "":
+		_skip = skip_env.split(",")
 	_run()
 
 func check(cond: bool, label: String) -> void:
@@ -43,22 +52,28 @@ func _run() -> void:
 		"res://modules/ui/internal/build_menu.gd", "res://modules/ui/internal/input_forwarder.gd",
 		"res://modules/audio/audio_controller.gd",
 	]
-	for p: String in script_paths:
-		check(ResourceLoader.load(p) != null, "compiles: %s" % p)
+	if _skipping("compile"):
+		print("  skip  compile check (SMOKE_SKIP)")
+	else:
+		for p: String in script_paths:
+			check(ResourceLoader.load(p) != null, "compiles: %s" % p)
 
 	# ---- data files parse
-	for jp in [
-		"res://core/data/sol_timing.json",
-		"res://modules/environment/data/maps.json", "res://modules/environment/data/storm_tables.json",
-		"res://modules/economy/data/starting_resources.json", "res://modules/economy/data/costs.json",
-		"res://modules/chronolith/data/chronolith.json",
-		"res://modules/build/data/buildings.json", "res://modules/build/data/grid_rules.json",
-		"res://modules/waves/data/enemy_types.json", "res://modules/waves/data/wave_tables.json",
-		"res://modules/rover/data/rover_stages.json", "res://modules/rover/data/weapons.json",
-		"res://modules/meta/data/unlocks.json", "res://modules/meta/data/memory_fragments.json",
-		"res://modules/audio/data/sound_map.json",
-	]:
-		check(typeof(Contracts.load_json(jp)) == TYPE_DICTIONARY, "json ok: %s" % String(jp).get_file())
+	if _skipping("json"):
+		print("  skip  json check (SMOKE_SKIP)")
+	else:
+		for jp in [
+			"res://core/data/sol_timing.json",
+			"res://modules/environment/data/maps.json", "res://modules/environment/data/storm_tables.json",
+			"res://modules/economy/data/starting_resources.json", "res://modules/economy/data/costs.json",
+			"res://modules/chronolith/data/chronolith.json",
+			"res://modules/build/data/buildings.json", "res://modules/build/data/grid_rules.json",
+			"res://modules/waves/data/enemy_types.json", "res://modules/waves/data/wave_tables.json",
+			"res://modules/rover/data/rover_stages.json", "res://modules/rover/data/weapons.json",
+			"res://modules/meta/data/unlocks.json", "res://modules/meta/data/memory_fragments.json",
+			"res://modules/audio/data/sound_map.json",
+		]:
+			check(typeof(Contracts.load_json(jp)) == TYPE_DICTIONARY, "json ok: %s" % String(jp).get_file())
 
 	# ---- 2. boot the game
 	var main: Node = (ResourceLoader.load("res://core/main.tscn") as PackedScene).instantiate()
@@ -104,22 +119,25 @@ func _run() -> void:
 		deadline -= 1
 		await get_tree().physics_frame
 	check(waves.alive_count() > 0, "enemies spawned during assault")
-	var ids: Array = waves.debug_list_ids()
-	if ids.size() > 0:
-		var killed := {"id": -1}
-		Bus.enemy_killed.connect(func(p: Dictionary) -> void: killed["id"] = int(p["enemy_id"]), CONNECT_ONE_SHOT)
-		Bus.rover_fired.emit({"from": {"x": 0, "y": 0}, "to": {"x": 100, "y": 100}, "damage": 9999, "target_id": ids[0]})
-		await frames(5)
-		check(int(killed["id"]) == int(ids[0]), "fire event resolves kill + salvage")
+	if _skipping("combat"):
+		print("  skip  combat steps (SMOKE_SKIP)")
 	else:
-		check(false, "had an enemy to shoot")
+		var ids: Array = waves.debug_list_ids()
+		if ids.size() > 0:
+			var killed := {"id": -1}
+			Bus.enemy_killed.connect(func(p: Dictionary) -> void: killed["id"] = int(p["enemy_id"]), CONNECT_ONE_SHOT)
+			Bus.rover_fired.emit({"from": {"x": 0, "y": 0}, "to": {"x": 100, "y": 100}, "damage": 9999, "target_id": ids[0]})
+			await frames(5)
+			check(int(killed["id"]) == int(ids[0]), "fire event resolves kill + salvage")
+		else:
+			check(false, "had an enemy to shoot")
 
-	# ---- 7. rewind active fires window
-	var rewound := {"v": false}
-	Bus.rewind_window.connect(func(_p: Dictionary) -> void: rewound["v"] = true, CONNECT_ONE_SHOT)
-	Bus.player_activated_rewind.emit({})
-	await frames(5)
-	check(bool(rewound["v"]), "rewind_window emitted on activation")
+		# ---- 7. rewind active fires window
+		var rewound := {"v": false}
+		Bus.rewind_window.connect(func(_p: Dictionary) -> void: rewound["v"] = true, CONNECT_ONE_SHOT)
+		Bus.player_activated_rewind.emit({})
+		await frames(5)
+		check(bool(rewound["v"]), "rewind_window emitted on activation")
 
 	# ---- 8. chronolith death ends the run → RESET → HUB
 	var end_reason := {"v": ""}
