@@ -257,7 +257,10 @@ func add_toast(text: String, color_hex: String = "#ffffff", life := 4.0) -> void
 	tw.tween_property(l, "modulate:a", 0.0, 0.8)
 	tw.tween_callback(l.queue_free)
 	while _toasts.get_child_count() > 5:
-		_toasts.get_child(0).queue_free()
+		var oldest := _toasts.get_child(0)
+		_toasts.remove_child(oldest) # immediate removal — queue_free() is
+		oldest.queue_free()          # deferred, so counting children in the
+	                               # loop condition would spin forever
 
 # ------------------------------------------------------------------ draw --
 func _process(delta: float) -> void:

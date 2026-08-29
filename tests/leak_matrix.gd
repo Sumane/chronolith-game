@@ -53,6 +53,12 @@ func _probe() -> void:
 			Bus.player_activated_rewind.emit({})
 			await _frames(5)
 			_mark("rewind done")
+		"toasts":
+			await _frames(120)
+			for i in 6:
+				Bus.toast.emit({"text": "TOAST %d — padding the stack" % i, "color": "#ffffff"})
+				await get_tree().process_frame
+			_mark("six toasts emitted")
 		"killhub":
 			await _frames(120)
 			Bus.enemy_attack.emit({"enemy_id": -1, "type": "trooper", "target": "CHRONOLITH", "damage": 99999})
