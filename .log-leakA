@@ -1,0 +1,11 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+MARK t=3 probe_start
+MARK t=197 game_booted
+MARK t=280 economy_test done rejected=true
+MARK t=467 turret_placed v=true
+MARK t=634 assault_started sol=1
+MARK t=1559 enemies_alive n=1
+MARK t=1642 combat_kill id=1
+MARK t=1724 rewind fired=true
+MARK t=1807 run_ended reason=chronolith_lost
