@@ -95,9 +95,15 @@ pays for plating after ~1–2 wins. Left the data files untouched.
    re-run after any test-side change. No change to the llama-server/context setup
    needed. Optional cushion if you want one anyway: swap 8→16 GB.
 
-## Suggested next steps (when you're around)
+## Run record (appended ~12:05)
 
-1. Run the suite once yourself:
-   `XDG_DATA_HOME=$PWD/.xdg godot --headless --path . res://tests/smoke_test.tscn`
-   (expect 45 `ok` lines, exit 0 — see the appended run record below).
-2. First 3D task per the roadmap: Stage 0 proof-of-concept scene.
+```
+== CHRONOLITH smoke ==
+== 71 checks, 0 failures ==
+EXIT: 0        (three consecutive runs, identical result)
+RSS: flat ~118 MB for the whole run (previously: 20-25 GB at the same point)
+```
+
+Extra bug found and fixed while getting green: `build_controller.gd` read
+`b.range` on buildings that only have `range_r` — turrets threw a script error
+every frame and never fired. Now `b.range_r`; turrets work.
