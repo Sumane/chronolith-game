@@ -1,0 +1,185 @@
+extends Node3D
+## M1 arena: hand-built 40 m x 40 m Mars test range.
+## Real geometry: heightmap terrain (HeightMapShape3D collision + matching
+## mesh), shot-blocking rocks, fixed Chronolith crystal, target dummies.
+## All blockout visuals (docs/asset-conventions.md).
+
+const GRID := 41
+const SIZE := 40.0
+
+const ROCKS: Array = [
+	[-7.0, 2.0, 1.6], [-9.5, -4.0, 1.2], [6.5, 6.0, 1.4], [9.0, -2.0, 1.8],
+	[3.0, 9.5, 1.1], [-4.0, -9.0, 1.5], [12.0, 8.0, 1.3], [-12.0, 8.5, 1.7],
+	[5.0, -12.0, 1.2], [-8.0, 12.0, 1.4],
+]
+const BLOCKER_POS := Vector3(0.0, 0.0, -2.0)  # on the line spawn -> Target1
+const BLOCKER_R := 1.6
+
+func height_at(x: float, z: float) -> float:
+	var h := 0.7 * sin(x * 0.22) * cos(z * 0.19) \
+		+ 0.45 * sin(x * 0.09 + 1.7) * sin(z * 0.11 + 0.4) \
+		+ 0.3 * cos((x + z) * 0.05)
+	h += maxf(0.0, -x - 8.0) * 0.22  # west slope ridge
+	var d := Vector2(x, z).length()
+	var pad := clampf((d - 6.0) / 6.0, 0.0, 1.0)  # flat buildable pad at centre
+	return h * pad * pad
+
+func _ready() -> void:
+	_build_environment()
+	_build_terrain()
+	for r in ROCKS:
+		_rock(Vector3(float(r[0]), height_at(float(r[0]), float(r[1])), float(r[1])), float(r[2]))
+	_rock(BLOCKER_POS, BLOCKER_R)
+	_build_crystal()
+	var t1 := TargetDummy.new()
+	t1.name = "Target1"
+	t1.position = Vector3(0.0, height_at(0.0, -12.0), -12.0)
+	add_child(t1)
+	var t2 := TargetDummy.new()
+	t2.name = "Target2"
+	t2.position = Vector3(8.0, height_at(8.0, -6.0), -6.0)
+	add_child(t2)
+	var t3 := TargetDummy.new()
+	t3.name = "Target3"
+	t3.position = Vector3(-9.0, height_at(-9.0, -7.0), -7.0)
+	add_child(t3)
+	print("M1_ARENA_READY")
+
+func _mat(c: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.roughness = 1.0
+	return m
+
+func _build_environment() -> void:
+	var world := WorldEnvironment.new()
+	var env := Environment.new()
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var pm := ProceduralSkyMaterial.new()
+	pm.sky_top_color = Color(0.32, 0.17, 0.14)
+	pm.sky_horizon_color = Color(0.58, 0.33, 0.22)
+	pm.ground_bottom_color = Color(0.2, 0.1, 0.08)
+	pm.ground_horizon_color = Color(0.58, 0.33, 0.22)
+	sky.sky_material = pm
+	env.sky = sky
+	env.fog_enabled = true
+	env.fog_light_color = Color(0.6, 0.36, 0.25)
+	env.fog_density = 0.01
+	world.environment = env
+	add_child(world)
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-55.0, -30.0, 0.0)
+	sun.light_energy = 1.3
+	sun.light_color = Color(1.0, 0.88, 0.72)
+	sun.shadow_enabled = true
+	add_child(sun)
+
+func _build_terrain() -> void:
+	var n := GRID
+	var verts := PackedVector3Array()
+	var nrm := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var idx := PackedInt32Array()
+	var heights := PackedFloat32Array()
+	heights.resize(n * n)
+	for iz in n:
+		for ix in n:
+			var x := -SIZE / 2.0 + float(ix)
+			var z := -SIZE / 2.0 + float(iz)
+			var h := height_at(x, z)
+			heights[iz * n + ix] = h
+			verts.append(Vector3(x, h, z))
+	for iz in n:
+		for ix in n:
+			var x := -SIZE / 2.0 + float(ix)
+			var z := -SIZE / 2.0 + float(iz)
+			var hx := height_at(x + 0.5, z) - height_at(x - 0.5, z)
+			var hz := height_at(x, z + 0.5) - height_at(x, z - 0.5)
+			nrm.append(Vector3(-hx, 1.0, -hz).normalized())
+			uvs.append(Vector2(ix, iz))
+	for iz in n - 1:
+		for ix in n - 1:
+			var a := iz * n + ix
+			idx.append_array([a, a + n, a + 1, a + 1, a + n, a + n + 1])
+	var mesh := ArrayMesh.new()
+	var arr: Array = []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = verts
+	arr[Mesh.ARRAY_NORMAL] = nrm
+	arr[Mesh.ARRAY_TEX_UV] = uvs
+	arr[Mesh.ARRAY_INDEX] = idx
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.material_override = _mat(Color(0.45, 0.26, 0.17))
+	add_child(mi)
+	var body := StaticBody3D.new()
+	var col := CollisionShape3D.new()
+	var shape := HeightMapShape3D.new()
+	shape.map_width = n
+	shape.map_depth = n
+	shape.map_data = heights
+	col.shape = shape
+	body.add_child(col)
+	add_child(body)
+
+func _rock(pos: Vector3, r: float) -> void:
+	var body := StaticBody3D.new()
+	var col := CollisionShape3D.new()
+	var s := SphereShape3D.new()
+	s.radius = r
+	col.shape = s
+	col.position = Vector3(0, r * 0.5, 0)
+	body.add_child(col)
+	var m := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = r
+	sm.height = r * 1.2
+	m.mesh = sm
+	m.material_override = _mat(Color(0.3, 0.19, 0.14))
+	m.position = Vector3(0, r * 0.5, 0)
+	m.scale = Vector3(1.0, 0.72, 1.0)
+	body.add_child(m)
+	body.position = pos
+	add_child(body)
+
+func _build_crystal() -> void:
+	var g := Node3D.new()
+	g.name = "Chronolith"
+	var ped := CylinderMesh.new()
+	ped.top_radius = 1.4
+	ped.bottom_radius = 1.7
+	ped.height = 0.5
+	var ped_mi := MeshInstance3D.new()
+	ped_mi.mesh = ped
+	ped_mi.material_override = _mat(Color(0.35, 0.3, 0.28))
+	ped_mi.position = Vector3(0, 0.25, 0)
+	g.add_child(ped_mi)
+	var cm := PrismMesh.new()
+	cm.size = Vector3(1.5, 3.0, 1.5)
+	var crystal := MeshInstance3D.new()
+	crystal.mesh = cm
+	var cmat := StandardMaterial3D.new()
+	cmat.albedo_color = Color(0.2, 0.85, 0.75)
+	cmat.emission_enabled = true
+	cmat.emission = Color(0.2, 0.95, 0.85)
+	cmat.emission_energy_multiplier = 1.5
+	crystal.material_override = cmat
+	crystal.position = Vector3(0, 2.1, 0)
+	g.add_child(crystal)
+	var glow := OmniLight3D.new()
+	glow.position = Vector3(0, 2.4, 0)
+	glow.light_color = Color(0.3, 0.95, 0.85)
+	glow.light_energy = 2.5
+	glow.omni_range = 10.0
+	g.add_child(glow)
+	var body := StaticBody3D.new()
+	var col := CollisionShape3D.new()
+	var s := SphereShape3D.new()
+	s.radius = 1.8
+	col.shape = s
+	col.position = Vector3(0, 1.8, 0)
+	body.add_child(col)
+	g.add_child(body)
+	add_child(g)

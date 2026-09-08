@@ -2,55 +2,63 @@
 
 ## Current milestone
 
-**M0 — Preserve and inspect: DONE (2026-09-07, branch `v1`).** Next: **M1 —
-Establish the intended game view.**
+**M1 — Establish the intended game view: BUILT (2026-09-07, branch `v1`).**
+Awaiting Marc's camera/feel review (the first product checkpoint). Next:
+**M2 — Playable threat loop** (only after feel feedback is settled).
 
-## M0 acceptance (verified)
+## M1 acceptance (machine-verified)
 
-- [x] 2D prototype preserved and recoverable: untouched on branch `main`
-      (last commit `7bf3557`); full suite re-run on `v1` HEAD: **71/71, exit 0**.
-- [x] Working branch `v1` created from `main`; design pack v1.0 + 5 reference
-      images committed (`ff22210`).
-- [x] 3D entry exists and launches a real 3D world: `res://scenes/poc/poc.tscn`
-      (Stage-0 tilt scene — drivable rover, crystal, trooper; headless probe
-      `POC_SECONDS=5` exits 0). M1 builds the proper third-person entry under
-      `scenes/v1/` and supersedes it.
-- [x] Engine pinned locally: Godot **4.7.1.stable.official.a13da4feb**
-      (`~/.bin/godot`); renderer `mobile` (desktop) / `gl_compatibility` (mobile).
-- [x] Reuse assessment: `docs/migration-note.md` (keep / adapt / replace, with
-      the legacy-save and reference-image-label notes).
-- [x] Exact launch procedure: `docs/migration-note.md` §Launch (user + sandbox
-      variants, one-godot-at-a-time rule).
+- [x] Isolated 3D entry: `res://scenes/v1/entry.tscn` — arena + PlayerRig +
+      Combat; 2D `main.tscn` untouched.
+- [x] Hand-built arena: 40 m heightmap terrain (real `HeightMapShape3D`
+      collision), west slope ridge, flat central build-pad, 11 shot-blocking
+      rocks, fixed Chronolith crystal, 3 damageable targets.
+- [x] Third-person driving: camera-relative WASD, forgiving accel/turn,
+      bounds clamp; **not inverted** — forward is always toward where you look.
+- [x] Rover-following orbit camera (mouse drag, clamped pitch, obstacle
+      pull-in raycast, rover kept lower-centre) + gamepad: left stick move,
+      right stick camera, A fire, Start pause.
+- [x] Manual weapon: hitscan with real 3D obstruction (rock provably blocks a
+      shot in the probe), tracer FX, muzzle socket.
+- [x] Pause: tree-pause + distinct input context (only the pause gate reads
+      input while paused); rover provably frozen; resume works.
+- [x] Placeholder-visual separation + `docs/asset-conventions.md` (sockets:
+      `Turret`/`Muzzle`, 1 unit = 1 m, origin at ground contact).
+- [x] Probe: `res://tests/v1/m1_probe.tscn` → **8/8, exit 0**; 2D suite still
+      **71/71, exit 0**.
+- [ ] **Marc's feel review** — camera distance/height/orbit speed and driving
+      weight are tuning guesses (6.5 m, +1.3 m, 9 m/s). Not settled until seen.
 
 ## Launch the current 3D playable
 
 ```bash
 cd /home/marc/AI/Chronolith-Game
-godot --path . res://scenes/poc/poc.tscn   # WASD drives the rover (Stage-0 tilt)
+godot --path . res://scenes/v1/entry.tscn
 ```
+WASD drive, mouse orbit/aim (cursor hidden, crosshair ring), LMB fire,
+Esc pause. Gamepad works too.
 
 ## Known limitations
 
-- POC movement mapping is inverted vs the camera view and the camera is fixed —
-  both are M1 acceptance items (chase camera that follows the rover, correct
-  WASD-to-view mapping, mouse orbit + aim, gamepad left/right stick).
-- No enemies, research, build UI, saves or waves in 3D yet (M1 scope ends at
-  driving/aiming/pause).
-- v1 economy numbers are unvalidated; `data/*.json` values are v0 tuning only.
+- No enemies/waves/research/building yet (M2+).
+- Camera feel + driving weight unreviewed — expect tuning.
+- v1 economy numbers unvalidated; `data/*.json` values are v0 tuning only.
+- 4.7.1 API notes for future work: raycasts =
+  `PhysicsRayQueryParameters3D.create(from,to,mask,exclude)` +
+  `space.intersect_ray(query)`; mesh arrays = `ARRAY_MAX`-sized slot array
+  (`Mesh.ARRAY_TEX_UV`, not `ARRAY_UV`); `Node` has no `get_world_3d()`.
 
-## Exact next task (M1, from chronolith-agent-tasks.md)
+## Exact next task (M2, from chronolith-agent-tasks.md)
 
-One small 3D arena with slopes, rocks, a fixed crystal and rover placeholder;
-forgiving WASD vehicle control; mouse orbit/aim; camera obstruction handling;
-one manually fired weapon that hits 3D targets and respects weapon
-obstruction; basic pause + input contexts; placeholder visual separated from
-controller/collision with scale/orientation/attachment conventions documented.
-Show a screenshot/recording and get Marc's camera/feel feedback before the
-presentation is treated as settled. Exclude: enemy roster, research,
-procedural maps, final graphics.
+First enemy + threat loop in the v1 entry: enemy that navigates the 3D
+terrain toward the rover/base, combat round-trips with real damage and death,
+spawn/wave budget hook, kill→reward flow — all blockout visuals, headless
+probe for the loop, then back to Marc for feel.
 
 ## Changed files (this milestone)
 
-- `chronolith-v1/*` (design pack v1.0, committed `ff22210`)
-- `reference images/*` (Marc's art, committed `ff22210`)
-- `docs/migration-note.md`, `docs/progress.md` (this file)
+- New: `player/player_rig.{gd,tscn}`, `combat/combat.gd`,
+  `combat/target_dummy.gd`, `world/arena.gd`, `scenes/v1/{entry.tscn,
+  entry.gd,arena.tscn}`, `tests/v1/m1_probe.{gd,tscn}`,
+  `docs/asset-conventions.md`
+- `docs/progress.md` (this file)
