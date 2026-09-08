@@ -192,3 +192,65 @@ scenario proves the mech is exciting and necessary.
   nuke/ram feedback), `combat/combat.gd` (pierce/deflect hit kinds),
   `building/turret.gd` (dmg var, deflect), `building/build_service.gd`,
   `tests/v1/m2_probe.gd` (Warden-aware kill loop), `docs/progress.md`
+
+## M5 — the mech payoff (DONE, committed)
+
+Hybrid stage prototype: research "mech" (3 engrams, needs r2) → build
+(8 scrap, T key) → the body changes to the warrior mech. B key spawns
+the Golem command target (debug).
+
+- `MechData` (mech stats): 250 hp / armor 3 / speed 6.5 / gun 40 pierce
+  @ 0.5 s cd / camera 5.0 (rover: 100 hp / 9.0 / 6.5).
+- `Golem` (command target): 300 hp, armor 20 (flat shots fully blocked,
+  pierce bypasses), 1.2 m/s, melee 40 @ 1.5 s, always advances on the
+  crystal, attacks buildings.
+- Payoff verified by probe: flat fire blocked (hp stays 300); rams chip
+  exactly 10 each (30 flat − 20 armor) while the body still pays 15 hp
+  per ram — the body cannot finish it; the mech gun (20 net/shot) kills
+  it in ~15 shots; base grunts keep advancing on the crystal while the
+  mech fights; a new attempt returns the body to the starter rover but
+  blueprint knowledge (and its applied stats: +50 hp, +1.5 speed)
+  persists.
+- Both routes reach the mech (probe): defence-heavy (turret+wall,
+  r1+r2 from 3 engrams) and rover-heavy (no builds, 2 harvests:
+  6+2 ≥ 8 build cost).
+- Progression model sync: `ProgressionModel.MECH` now mirrors the real
+  catalog (cost 3 / req r2 / build 8); the gate check searches all
+  attempts up to the win because research persists across attempts
+  (mech buys in attempt 2, wave 7, builds on the winning attempt).
+
+### M5 gotchas (learned the hard way)
+
+- **Checkpoint pollution**: never re-arm `entry.flow.running = true`
+  after a WIN and then save — `_profile_data()` persists a mid-attempt
+  checkpoint (`attempt {wave: 3}`) and the next entry boots into wave 3
+  (instant warden + `attempt_won`). Probes unpause the tree only.
+- **`rig.ram()` miss is free**: no cost, no cooldown — a stale
+  camera-owned aim loops forever. Re-aim with `debug_set_aim` in the
+  SAME FRAME as the ram (no await between).
+- Ram ray is 4.5 m from the muzzle — the probe teleports the rover 3 m
+  behind the Golem on its approach line each try (in ram range, out of
+  its 2.2 m melee range).
+- Golem melee on the rover body: the Rover (CharacterBody3D) has no
+  `damage()`; the Golem falls back to the parent rig.
+
+### Open gaps carried forward
+
+- Grunt/Warden attacks on the rover body are silently skipped
+  (`has_method("damage")` guard) — only the Golem got the parent
+  fallback (M3 gap, still open).
+- `debug_instant_wave(n)` does not increment `wave`, so the Warden
+  (tied to director `wave`) only appears on the 3rd cleared wave.
+- Model ↔ game data sync is a mirror const (documented in
+  docs/progression-model.md).
+
+## Changed files (M5)
+
+- New: `combat/golem.gd`, `mechanic/mech_data.gd`, `tests/v1/m5_probe.{gd,tscn}`
+- Changed: `knowledge/research_tree.gd` (7th node "mech"),
+  `ui/research_screen.gd` (keys 1–9), `player/player_rig.gd`
+  (mech transform/demolish, mech fire, cam dist), `scenes/v1/entry.gd`
+  (T/B keys, mech fire branch, HUD body label),
+  `progression/progression_model.gd` (MECH mirror const),
+  `tests/v1/progression_probe.gd` (gate searches all attempts),
+  `docs/progress.md`

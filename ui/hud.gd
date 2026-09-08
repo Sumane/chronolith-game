@@ -60,8 +60,8 @@ func set_scrap(n: int, cost_w: int, cost_t: int, nukes: int = -1) -> void:
 func set_wave(state_name: String, wave: int, total: int, info: String) -> void:
 	wave_label.text = "WAVE %d/%d  %s  %s" % [wave, total, state_name, info]
 
-func set_rover(hp: int, max_hp: int) -> void:
-	rover_label.text = "ROVER  %d/%d" % [hp, max_hp]
+func set_rover(hp: int, max_hp: int, body_name: String = "ROVER") -> void:
+	rover_label.text = "%s  %d/%d" % [body_name, hp, max_hp]
 
 func set_crystal(hp: int, max_hp: int) -> void:
 	crystal_label.text = "CRYSTAL  %d/%d" % [hp, max_hp]

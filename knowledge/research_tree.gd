@@ -28,6 +28,10 @@ const NODES := {
 		"name": "Ion Coils", "line": "ROVER", "cost": 2, "req": ["r1"],
 		"effect": {"rover_speed": 1.5}, "desc": "Rover speed +1.5 m/s",
 	},
+	"mech": {
+		"name": "Hybrid Chassis", "line": "MECH", "cost": 3, "req": ["r2"],
+		"effect": {"mech_unlock": 1}, "desc": "Unlocks the Hybrid Mech (T: build, 8 scrap)",
+	},
 }
 
-const ORDER := ["t1", "t2", "f1", "f2", "r1", "r2"]
+const ORDER := ["t1", "t2", "f1", "f2", "r1", "r2", "mech"]

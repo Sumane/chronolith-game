@@ -84,13 +84,19 @@ func _ready() -> void:
 	check("respec boundary: earliest win unchanged, no negative balances",
 		respec_same and not neg_balance)
 
-	# 6 mech gate: the winning path buys + builds the mech before wave 20
+	# 6 mech gate: the winning path buys + builds the mech before wave 20.
+	# Research persists across attempts (GDD), so the purchase may sit in an
+	# earlier attempt; it only needs to exist before the final fight.
 	var win_attempt_data: Dictionary = best["attempts"][int(best["win_attempt"]) - 1]["result"]
 	var mech_trace := bool(win_attempt_data["mech_built"])
 	var mech_buy_wave := -1
-	for p in win_attempt_data["purchases"]:
-		if p["id"] == "mech":
-			mech_buy_wave = int(p["wave_after"])
+	for att in best["attempts"]:
+		if int(att["attempt"]) > int(best["win_attempt"]):
+			break
+		var ar: Dictionary = att["result"]
+		for p in ar["purchases"]:
+			if p["id"] == "mech":
+				mech_buy_wave = int(p["wave_after"])
 	check("mech gate: bought before final wave and built (param %s)" % str(ProgressionModel.MECH["name"]),
 		mech_trace and mech_buy_wave >= 0 and mech_buy_wave < ProgressionModel.CAMPAIGN_WAVES - 1)
 

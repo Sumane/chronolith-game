@@ -7,7 +7,7 @@ extends Node3D
 ## Gamepad: left stick move, right stick camera, A fire, Start pause.
 
 var speed := 9.0
-const CAM_DIST := 6.5
+var _cam_dist := 6.5
 const CAM_MIN := 1.4
 const FIRE_CD := 0.25
 
@@ -39,6 +39,11 @@ var build_locked := false
 var _dbg_interact := 0.0
 var _channel := 0.0
 var _channel_target: Node = null
+# M5 mech state
+var mech_mode := false
+var _body_mi: MeshInstance3D
+var _mech_mi: MeshInstance3D
+signal mech_changed(active: bool)
 
 signal hp_changed(hp: int)
 signal harvest_done(deposit: Node)
@@ -77,7 +82,7 @@ func _physics_process(delta: float) -> void:
 	if _dbg_interact > 0.0:
 		_dbg_interact -= delta
 	if _fire_pressed() and can_fire and _fire_cd <= 0.0 and _aim_valid:
-		_fire_cd = FIRE_CD
+		_fire_cd = MechData.GUN_CD if mech_mode else FIRE_CD
 		fired.emit(_muzzle.global_position, _aim_pos)
 
 func _read_move_input() -> Vector2:
@@ -123,7 +128,7 @@ func _drive(delta: float, move: Vector2) -> void:
 func _update_camera(delta: float) -> void:
 	var target := _rover.global_position + Vector3(0, 1.3, 0)
 	var to_cam := Vector3(sin(_yaw), 0.0, cos(_yaw)) * cos(_pitch)
-	var desired := target + (to_cam * CAM_DIST) + Vector3(0, sin(_pitch), 0) * CAM_DIST
+	var desired := target + (to_cam * _cam_dist) + Vector3(0, sin(_pitch), 0) * _cam_dist
 	var space := get_world_3d().direct_space_state
 	var q := PhysicsRayQueryParameters3D.create(target, desired, -1, [_rover.get_rid()])
 	var hit: Dictionary = space.intersect_ray(q)
@@ -168,6 +173,8 @@ func _toggle_pause() -> void:
 func damage(n: int) -> void:
 	if hp <= 0:
 		return
+	if mech_mode:
+		n = maxi(0, n - MechData.ARMOR)
 	hp = maxi(0, hp - n)
 	hp_changed.emit(hp)
 
@@ -206,6 +213,41 @@ func apply_research(efs: Dictionary) -> void:
 	max_hp += int(efs.get("rover_hp", 0.0))
 	hp = max_hp
 	speed += float(efs.get("rover_speed", 0.0))
+
+# ------------------------------------------------------------- M5 mech ------
+
+func cam_dist() -> float:
+	return _cam_dist
+
+func transform_to_mech() -> void:
+	if mech_mode:
+		return
+	mech_mode = true
+	max_hp = MechData.MAX_HP
+	hp = max_hp
+	speed = MechData.SPEED
+	_cam_dist = MechData.CAM_DIST
+	if _body_mi != null:
+		_body_mi.visible = false
+	if _mech_mi != null:
+		_mech_mi.visible = true
+	mech_changed.emit(true)
+
+## GDD reset rule: the mech body resets to the starter rover on a new attempt;
+## blueprint knowledge remains. apply_research() then re-applies rover stats.
+func demolish_mech() -> void:
+	if not mech_mode:
+		return
+	mech_mode = false
+	max_hp = 100
+	hp = 100
+	speed = 9.0
+	_cam_dist = 6.5
+	if _body_mi != null:
+		_body_mi.visible = true
+	if _mech_mi != null:
+		_mech_mi.visible = false
+	mech_changed.emit(false)
 
 func aim_point() -> Vector3:
 	return _aim_pos
@@ -290,7 +332,18 @@ func _build_rover() -> void:
 	body_mi.mesh = body_mesh
 	body_mi.material_override = _mat(Color(0.72, 0.62, 0.45))
 	body_mi.position = Vector3(0, 0.35, 0)
+	_body_mi = body_mi
 	_chassis.add_child(body_mi)
+	# M5 mech blockout (hidden until transform): bigger, emissive core
+	var mech_mesh := BoxMesh.new()
+	mech_mesh.size = Vector3(2.4, 1.4, 2.8)
+	var mech_mi := MeshInstance3D.new()
+	mech_mi.mesh = mech_mesh
+	mech_mi.material_override = _mat(Color(0.35, 0.45, 0.5), Color(0.3, 0.9, 1.0), 0.6)
+	mech_mi.position = Vector3(0, 0.55, 0)
+	mech_mi.visible = false
+	_mech_mi = mech_mi
+	_chassis.add_child(mech_mi)
 	_turret = Node3D.new()
 	_turret.name = "Turret"
 	_turret.position = Vector3(0, 0.85, -0.2)

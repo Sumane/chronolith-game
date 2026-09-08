@@ -137,6 +137,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			_set_banner("RAM! (-%d rover hp)" % PlayerRig.RAM_COST)
 	elif event.is_action_pressed("nuke"):
 		_fire_nuke()
+	elif event.is_action_pressed("mech_transform"):
+		_try_transform_mech()
+	elif event.is_action_pressed("debug_golem"):
+		_spawn_golem()
 	elif event.is_action_pressed("restart_attempt"):
 		get_tree().reload_current_scene()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and build.active:
@@ -162,6 +166,8 @@ func _register_actions() -> void:
 	_add_key("research_toggle", KEY_G)
 	_add_key("ram", KEY_SHIFT)
 	_add_key("nuke", KEY_F)
+	_add_key("mech_transform", KEY_T)
+	_add_key("debug_golem", KEY_B)
 
 func _add_key(action: String, keycode: Key) -> void:
 	if InputMap.has_action(action):
@@ -174,7 +180,10 @@ func _add_key(action: String, keycode: Key) -> void:
 # ------------------------------------------------------------- callbacks -----
 
 func _on_fired(from: Vector3, to: Vector3) -> void:
-	combat.fire(from, to, [rig.rover_rid()])
+	if rig.mech_mode:
+		combat.fire(from, to, [rig.rover_rid()], MechData.GUN_DMG, true)
+	else:
+		combat.fire(from, to, [rig.rover_rid()])
 
 func _on_rover_hp(hp: int) -> void:
 	_refresh_hud()
@@ -288,6 +297,42 @@ func _fire_nuke() -> void:
 func debug_nuke() -> void:
 	_fire_nuke()
 
+func _try_transform_mech() -> void:
+	if rig.mech_mode:
+		_set_banner("ALREADY IN THE MECH")
+		return
+	if not knowledge.researched.has("mech"):
+		_set_banner("RESEARCH THE HYBRID CHASSIS FIRST (G)")
+		return
+	if cargo < MechData.BUILD_COST:
+		_set_banner("MECH NEEDS %d SCRAP (HAVE %d)" % [MechData.BUILD_COST, cargo])
+		return
+	spend(MechData.BUILD_COST)
+	rig.transform_to_mech()
+	_set_banner("HYBRID MECH ONLINE — HEAVY PIERCING GUN (T: no de-transform in M5)")
+	_refresh_hud()
+
+func _spawn_golem() -> void:
+	if not flow.running:
+		return
+	var rover = rig.get_node("Rover")
+	var g: Golem = load("res://combat/golem.gd").new()
+	var p: Vector3 = rover.global_position + Vector3(0, 0.5, -10.0)
+	if arena != null and arena.has_method("height_at"):
+		p.y = arena.height_at(p.x, p.z) + 0.5
+	g.position = p
+	g.goal = arena.crystal
+	g._rover = rover
+	g.golem_event.connect(_on_golem_event)
+	arena.get_parent().add_child(g)
+	_set_banner("COMMAND TARGET SPAWNED — ARMOR 20: ONLY PIERCING BREAKS IT")
+
+func _on_golem_event(_g: Golem, kind: String) -> void:
+	if kind == "blocked":
+		_set_banner("GOLEM ARMOR BLOCKED THE HIT (PIERCE OR RAM)")
+	elif kind == "counter":
+		_set_banner("GOLEM TOOK PIERCING DAMAGE")
+
 func _on_warden_event(_w: Warden, kind: String) -> void:
 	var now := float(Time.get_ticks_msec())
 	if _warden_event_t + 900.0 > now:
@@ -349,7 +394,7 @@ func _refresh_hud() -> void:
 		state = "ENDED"
 		info = flow.last_result
 	hud.set_wave(state, director.wave, WaveDirector.WAVE_SIZES.size(), info)
-	hud.set_rover(rig.hp, rig.max_hp)
+	hud.set_rover(rig.hp, rig.max_hp, "MECH" if rig.mech_mode else "ROVER")
 	hud.set_crystal(arena.crystal.integrity, arena.crystal.max_integrity)
 	if build.active:
 		hud.set_hint("1 WALL  2 TURRET  LMB PLACE  X/Esc CANCEL  E HARVEST/REPAIR")

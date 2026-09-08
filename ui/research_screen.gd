@@ -96,7 +96,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_on_buy(ResearchTree.ORDER[idx])
 
 func _key_index(k: Key) -> int:
-	var keys: Array = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6]
+	var keys: Array = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9]
 	var i := 0
 	while i < keys.size():
 		if k == keys[i]:
