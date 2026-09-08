@@ -8,11 +8,19 @@ var knowledge: Knowledge = null
 var on_purchase: Callable
 var on_close: Callable
 var visible_now := false
+var _page := 0
 var _stats: Label
 var _rows := {}
 var _flash: Label
+var _hint: Label
 var _flash_t := 0.0
 var _dim: ColorRect
+
+# M6: two pages of 7 — page 1 TURRET+FORT, page 2 ROVER+TEMPORAL+MECH.
+const PAGES := [
+	["t1", "t2", "t3", "t4", "f1", "f2", "f3"],
+	["r1", "r2", "r3", "r4", "x1", "x2", "mech"],
+]
 
 func _ready() -> void:
 	layer = 8
@@ -59,15 +67,15 @@ func _ready() -> void:
 		btn.pressed.connect(_on_buy.bind(id))
 		row.add_child(btn)
 		box.add_child(row)
-		_rows[id] = {"btn": btn, "desc": desc_lbl}
+		row.visible = i < 7
+		_rows[id] = {"btn": btn, "desc": desc_lbl, "row": row, "idx": i, "key": key_lbl}
 	_flash = Label.new()
 	_flash.add_theme_font_size_override("font_size", 15)
 	_flash.add_theme_color_override("font_color", Color(1, 0.5, 0.4))
 	box.add_child(_flash)
-	var hint := Label.new()
-	hint.text = "Esc / G — close and resume"
-	hint.add_theme_font_size_override("font_size", 13)
-	box.add_child(hint)
+	_hint = Label.new()
+	_hint.add_theme_font_size_override("font_size", 13)
+	box.add_child(_hint)
 	panel.add_child(box)
 	center.add_child(panel)
 	_dim.add_child(center)
@@ -82,6 +90,7 @@ func _process(delta: float) -> void:
 
 func show_screen() -> void:
 	visible_now = true
+	_page = 0
 	_refresh()
 	_dim.visible = true
 
@@ -91,12 +100,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("pause_toggle") or event.is_action_pressed("research_toggle"):
 		_close()
 	elif event is InputEventKey and event.pressed and not event.echo:
-		var idx := _key_index((event as InputEventKey).keycode)
-		if idx >= 0:
-			_on_buy(ResearchTree.ORDER[idx])
+		var kc := (event as InputEventKey).keycode
+		if kc == KEY_P or kc == KEY_TAB:
+			_flip_page()
+		else:
+			var idx := _key_index(kc)
+			if idx >= 0:
+				_on_buy(PAGES[_page][idx])
 
 func _key_index(k: Key) -> int:
-	var keys: Array = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9]
+	var keys: Array = [KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7]
 	var i := 0
 	while i < keys.size():
 		if k == keys[i]:
@@ -128,9 +141,21 @@ func _close() -> void:
 	_dim.visible = false
 	on_close.call()
 
+func _flip_page() -> void:
+	_page = (_page + 1) % PAGES.size()
+	_refresh()
+
 func _refresh() -> void:
 	if knowledge == null:
 		return
+	var visible: Array = PAGES[_page]
+	for id in _rows:
+		if not visible.has(id):
+			_rows[id]["row"].visible = false
+		else:
+			_rows[id]["row"].visible = true
+			_rows[id]["key"].text = "[%d]" % (int(visible.find(id)) + 1)
+	_hint.text = "PAGE %d/%d — P — other line · 1-7 — buy · Esc / G — close" % [_page + 1, PAGES.size()]
 	_stats.text = "EARNED %d   SPENT %d   BALANCE %d" % [knowledge.earned_total, knowledge.spent_total, knowledge.balance()]
 	for id in _rows:
 		var node: Dictionary = ResearchTree.NODES[id]

@@ -102,8 +102,8 @@ func _ready() -> void:
 
 	# 7 real catalog depth vs the deepest barrier
 	var cat := ProgressionModel.catalog_total_cost()
-	check("catalog gap: real tree depth %d < wave-16 threshold 45 (M6 expansion quantified)" % cat,
-		cat < 45)
+	check("catalog depth: real tree %d >= wave-16 threshold 45 (M6: gap closed)" % cat,
+		cat >= 45)
 
 	# 8 export
 	trace_export = {

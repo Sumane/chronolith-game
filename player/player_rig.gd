@@ -180,7 +180,10 @@ func damage(n: int) -> void:
 
 const RAM_CD := 3.0
 const RAM_COST := 15
+const HARVEST_RADIUS := 2.6
 var _ram_cd := 0.0
+var _ram_recharge := 0.0   # M6 r3: Ram Capacitor
+var _harvest_radius := HARVEST_RADIUS  # M6 r4: Mag Coil
 
 func ram() -> bool:
 	if _ram_cd > 0.0 or hp <= RAM_COST:
@@ -203,7 +206,7 @@ func ram() -> bool:
 		(c as Node).call("damage", 30)
 	hp -= RAM_COST
 	hp_changed.emit(hp)
-	_ram_cd = RAM_CD
+	_ram_cd = maxf(1.0, RAM_CD - _ram_recharge)
 	return true
 
 func debug_ram() -> bool:
@@ -213,6 +216,8 @@ func apply_research(efs: Dictionary) -> void:
 	max_hp += int(efs.get("rover_hp", 0.0))
 	hp = max_hp
 	speed += float(efs.get("rover_speed", 0.0))
+	_ram_recharge = float(efs.get("ram_recharge", 0.0))
+	_harvest_radius = HARVEST_RADIUS + float(efs.get("harvest_range", 0.0))
 
 # ------------------------------------------------------------- M5 mech ------
 
@@ -260,12 +265,12 @@ func _update_interact(delta: float) -> void:
 	if Input.is_action_pressed("interact") or _dbg_interact > 0.0:
 		var p := _rover.global_position
 		for d in get_tree().get_nodes_in_group("deposit"):
-			if d is Node3D and p.distance_to(d.global_position) < 2.6:
+			if d is Node3D and p.distance_to(d.global_position) < _harvest_radius:
 				want = d
 				break
 		if want == null:
 			for b in get_tree().get_nodes_in_group("building"):
-				if b is BuildingBase and p.distance_to(b.global_position) < 2.6 and b.hp < b.max_hp:
+				if b is BuildingBase and p.distance_to(b.global_position) < _harvest_radius and b.hp < b.max_hp:
 					want = b
 					break
 	if want != _channel_target:

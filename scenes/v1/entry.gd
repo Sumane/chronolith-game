@@ -8,6 +8,7 @@ var cargo := START_CARGO
 var rig: PlayerRig
 var combat: Combat
 var arena
+var time: TimeWarp
 var flow: GameFlow
 var director: WaveDirector
 var build: BuildService
@@ -39,6 +40,10 @@ func _ready() -> void:
 	_register_actions()
 	arena = (ResourceLoader.load("res://scenes/v1/arena.tscn") as PackedScene).instantiate()
 	add_child(arena)
+	# M6 TEMPORAL: stasis burst state lives on the arena (enemies hold arena refs)
+	time = TimeWarp.new()
+	time.name = "TimeWarp"
+	arena.add_child(time)
 	flow = GameFlow.new()
 	flow.name = "Flow"
 	add_child(flow)
@@ -64,7 +69,13 @@ func _ready() -> void:
 	knowledge = Knowledge.new()
 	profile = ProfileStore.new()
 	_load_profile()
-	rig.apply_research(knowledge.applied())
+	var efs0: Dictionary = knowledge.applied()
+	rig.apply_research(efs0)
+	# M6 f3: Aegis Membrane — the next attempt's crystal starts shielded
+	var shield: int = int(efs0.get("crystal_shield", 0.0))
+	if shield > 0:
+		arena.crystal.max_integrity += shield
+		arena.crystal.integrity += shield
 	build.knowledge = knowledge
 	research_screen = ResearchScreen.new()
 	research_screen.name = "ResearchScreen"
@@ -141,6 +152,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_try_transform_mech()
 	elif event.is_action_pressed("debug_golem"):
 		_spawn_golem()
+	elif event.is_action_pressed("time_burst"):
+		_try_time_burst()
 	elif event.is_action_pressed("restart_attempt"):
 		get_tree().reload_current_scene()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and build.active:
@@ -168,6 +181,7 @@ func _register_actions() -> void:
 	_add_key("nuke", KEY_F)
 	_add_key("mech_transform", KEY_T)
 	_add_key("debug_golem", KEY_B)
+	_add_key("time_burst", KEY_C)
 
 func _add_key(action: String, keycode: Key) -> void:
 	if InputMap.has_action(action):
@@ -322,10 +336,26 @@ func _spawn_golem() -> void:
 		p.y = arena.height_at(p.x, p.z) + 0.5
 	g.position = p
 	g.goal = arena.crystal
+	g.arena = arena
 	g._rover = rover
 	g.golem_event.connect(_on_golem_event)
 	arena.get_parent().add_child(g)
 	_set_banner("COMMAND TARGET SPAWNED — ARMOR 20: ONLY PIERCING BREAKS IT")
+
+func _try_time_burst() -> void:
+	if not knowledge.researched.has("x1"):
+		return
+	var efs: Dictionary = knowledge.applied()
+	var f := float(efs.get("time_factor", 1.0))
+	var dur := 2.5
+	var cd := 12.0
+	if knowledge.researched.has("x2"):
+		dur = 5.0
+		cd = 10.0
+	if time.burst(f, dur, cd):
+		_set_banner("STASIS — ENEMIES SLOWED")
+	else:
+		_set_banner("STASIS RECHARGING")
 
 func _on_golem_event(_g: Golem, kind: String) -> void:
 	if kind == "blocked":

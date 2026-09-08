@@ -46,12 +46,22 @@ func research(id: String) -> Dictionary:
 	spent_total += int(chk["cost"])
 	return {"ok": true, "cost": chk["cost"]}
 
+const MIN_KEYS := ["time_factor"]
+
 func applied() -> Dictionary:
 	var out := {}
 	for id in researched:
 		var node: Dictionary = ResearchTree.NODES.get(id, {})
 		for stat in node.get("effect", {}):
-			out[stat] = float(out.get(stat, 0.0)) + float(node["effect"][stat])
+			if MIN_KEYS.has(stat):
+				# stacking deepens the slow — take the strongest, never sum
+				var cur: Variant = out.get(stat)
+				if cur == null:
+					out[stat] = float(node["effect"][stat])
+				else:
+					out[stat] = minf(float(cur), float(node["effect"][stat]))
+			else:
+				out[stat] = float(out.get(stat, 0.0)) + float(node["effect"][stat])
 	return out
 
 func snapshot() -> Dictionary:

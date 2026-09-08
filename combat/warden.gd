@@ -90,7 +90,7 @@ func _physics_process(delta: float) -> void:
 			return
 		"charge":
 			_t -= delta
-			velocity = _charge_dir * CHARGE_SPEED
+			velocity = _charge_dir * CHARGE_SPEED * _time_factor()
 			if not is_on_floor():
 				velocity += Vector3(0, -25.0, 0) * delta
 			move_and_slide()
@@ -206,7 +206,7 @@ func _move_to(to: Vector3, delta: float) -> void:
 		if not (c is BuildingBase) and c != goal and not (c is CharacterBody3D and c == _rover):
 			var side := Vector3(-dir.z * _bias, 0.0, dir.x * _bias)
 			dir = (dir * 0.7 + side).normalized()
-	var wish := dir * SPEED
+	var wish := dir * SPEED * _time_factor()
 	velocity = velocity.lerp(wish, 1.0 - exp(-3.0 * delta))
 	if not is_on_floor():
 		velocity += Vector3(0, -25.0, 0) * delta
@@ -249,3 +249,10 @@ func _die() -> void:
 	set_deferred("process_physics", false)
 	var t := get_tree().create_timer(0.6)
 	t.timeout.connect(queue_free)
+
+## M6 TEMPORAL: stasis burst — the TimeWarp node on the arena slows all
+## enemies; the rover and camera are unaffected.
+func _time_factor() -> float:
+	if arena != null and arena.has_node("TimeWarp"):
+		return float(arena.get_node("TimeWarp").call("factor"))
+	return 1.0

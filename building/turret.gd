@@ -1,12 +1,15 @@
+class_name Turret
 extends BuildingBase
 ## M2 automated turret: 1x1 footprint, range 8 m, 0.8 s cooldown, 10 dmg.
 ## Targets nearest enemy with clear line of sight; fires through Combat.
+## M6: range_m / dmg / cooldown are research-applied at build time.
 
 const RANGE := 8.0
 const COOLDOWN_DEFAULT := 0.8
 
 var dmg := 10
 var cooldown := COOLDOWN_DEFAULT
+var range_m := RANGE
 const SCAN := 0.25
 
 var combat: Combat
@@ -88,7 +91,7 @@ func _physics_process(delta: float) -> void:
 
 func _pick_target() -> void:
 	var best: Node = null
-	var best_d := RANGE
+	var best_d := range_m
 	for e in get_tree().get_nodes_in_group("enemy"):
 		if e is Node3D:
 			var d: float = global_position.distance_to((e as Node3D).global_position)

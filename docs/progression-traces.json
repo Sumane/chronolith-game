@@ -505,7 +505,7 @@
 			"threshold_at_block": 45
 		}
 	],
-	"catalog_total_cost": 12,
+	"catalog_total_cost": 45,
 	"earliest_win_by_nukes": {
 		"0": 5,
 		"1": 5,
@@ -578,23 +578,23 @@
 				"blocked_wave": 10,
 				"cleared": 9,
 				"earned_end": 14,
-				"mech_built": true,
+				"mech_built": false,
 				"nukes_used": {},
 				"purchases": [
 					{
-						"id": "f2",
+						"id": "r2",
 						"wave_after": 2
 					},
 					{
-						"id": "r2",
+						"id": "x1",
 						"wave_after": 4
 					},
 					{
-						"id": "mech",
+						"id": "f2",
 						"wave_after": 7
 					}
 				],
-				"scrap_end": 52,
+				"scrap_end": 60,
 				"spent_end": 12,
 				"won": false
 			},
@@ -603,15 +603,36 @@
 		{
 			"attempt": 3,
 			"result": {
-				"balance_end": 15,
+				"balance_end": 0,
 				"blocked_wave": 14,
 				"cleared": 13,
 				"earned_end": 27,
 				"mech_built": true,
 				"nukes_used": {},
-				"purchases": [],
+				"purchases": [
+					{
+						"id": "r2",
+						"wave_after": 0
+					},
+					{
+						"id": "x1",
+						"wave_after": 2
+					},
+					{
+						"id": "mech",
+						"wave_after": 5
+					},
+					{
+						"id": "r3",
+						"wave_after": 9
+					},
+					{
+						"id": "x2",
+						"wave_after": 13
+					}
+				],
 				"scrap_end": 76,
-				"spent_end": 12,
+				"spent_end": 27,
 				"won": false
 			},
 			"start_earned": 14
@@ -619,15 +640,32 @@
 		{
 			"attempt": 4,
 			"result": {
-				"balance_end": 32,
+				"balance_end": 4,
 				"blocked_wave": 18,
 				"cleared": 17,
 				"earned_end": 44,
 				"mech_built": true,
 				"nukes_used": {},
-				"purchases": [],
+				"purchases": [
+					{
+						"id": "x1",
+						"wave_after": 2
+					},
+					{
+						"id": "mech",
+						"wave_after": 5
+					},
+					{
+						"id": "r3",
+						"wave_after": 9
+					},
+					{
+						"id": "x2",
+						"wave_after": 13
+					}
+				],
 				"scrap_end": 100,
-				"spent_end": 12,
+				"spent_end": 40,
 				"won": false
 			},
 			"start_earned": 27
@@ -635,15 +673,24 @@
 		{
 			"attempt": 5,
 			"result": {
-				"balance_end": 52,
+				"balance_end": 17,
 				"blocked_wave": -1,
 				"cleared": 20,
 				"earned_end": 64,
 				"mech_built": true,
 				"nukes_used": {},
-				"purchases": [],
+				"purchases": [
+					{
+						"id": "x2",
+						"wave_after": 0
+					},
+					{
+						"id": "mech",
+						"wave_after": 3
+					}
+				],
 				"scrap_end": 118,
-				"spent_end": 12,
+				"spent_end": 47,
 				"won": true
 			},
 			"start_earned": 44

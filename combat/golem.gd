@@ -1,10 +1,11 @@
 class_name Golem
 extends CharacterBody3D
 ## M5 command target: a siege tank that always advances on the crystal,
-## whatever else is on the field. 300 hp, armor 20 (flat — only piercing
-## damage gets through: the mech gun). Rover rams (30 pierce) chip 10 each
-## but the rover cannot survive the exchange; base enemies keep attacking
-## while the mech fights it (it ignores the rover unless they cross paths).
+## whatever else is on the field. 300 hp, armor 20 (flat damage fully
+## blocked — only piercing shots get through: the mech gun, 20 net/shot).
+## Rover rams are 30 flat: they chip 10 each while the body pays 15 hp,
+## so the body cannot finish it. Base enemies keep attacking while the
+## mech fights (the golem ignores the rover unless they cross paths).
 
 const HP := 300
 const ARMOR := 20
@@ -17,6 +18,7 @@ const MELEE_CD := 1.5
 
 var hp := HP
 var goal: Node3D = null
+var arena
 var _rover: Node3D = null
 var _cd := 0.0
 var _dead := false
@@ -61,7 +63,7 @@ func _physics_process(delta: float) -> void:
 		var d := (goal.global_position + Vector3(0, 0.6, 0)) - p
 		d.y = 0.0
 		if d.length() > CRYSHP_RANGE:
-			velocity = d.normalized() * SPEED
+			velocity = d.normalized() * SPEED * _time_factor()
 			look_at(p + d.normalized(), Vector3.UP)
 		elif _cd <= 0.0:
 			goal.call("damage", MELEE)
@@ -103,3 +105,10 @@ func damage(n: int, piercing: bool = false) -> void:
 		_dead = true
 		died.emit(self)
 		queue_free()
+
+## M6 TEMPORAL: stasis burst — the TimeWarp node on the arena slows all
+## enemies; the rover and camera are unaffected.
+func _time_factor() -> float:
+	if arena != null and arena.has_node("TimeWarp"):
+		return float(arena.get_node("TimeWarp").call("factor"))
+	return 1.0

@@ -254,3 +254,54 @@ the Golem command target (debug).
   `progression/progression_model.gd` (MECH mirror const),
   `tests/v1/progression_probe.gd` (gate searches all attempts),
   `docs/progress.md`
+
+## M6a — expanded research: five lines, depth 45, temporal stasis (v1)
+
+**Scope**: the research tree grows from 9 nodes/depth 21 to **14 nodes, depth 45,
+five lines** — the wave-16 barrier (45 engram) is now reachable with no dead zone.
+New: turret range + twin-cartridge (dmg/cd-split), aegis crystal shield, ram
+capacitor, mag-coil harvest range, and the TEMPORAL line (Stasis Burst / Deep
+Stasis). All effects are wired through the existing build/boot apply paths.
+
+**Changes**
+- `knowledge/research_tree.gd` — 14 nodes (t1-t4, f1-f3, r1-r4, x1-x2, mech);
+  f2 Auto-Welder stays cost 3 (fort depth 9); total 45.
+- `knowledge/knowledge.gd` — `applied()` min-merges `MIN_KEYS` (`time_factor`):
+  x1 0.7 + x2 0.5 -> 0.5, never a speedup.
+- `game/time_warp.gd` (new) — arena-mounted burst state: `factor()` /
+  `active()` / `can_burst()` / `burst(f, dur, cd)`.
+- `combat/enemy.gd`, `combat/warden.gd`, `combat/golem.gd` — movement scales by
+  `arena.TimeWarp.factor()` (0.5x under Deep Stasis). Golem gains `arena`.
+- `building/turret.gd` — `class_name Turret`, `range_m` (research 12 m max);
+  `build_service` applies dmg 10+sum, cd 0.8-cd_base then × split (0.25 floor),
+  range 8+sum.
+- `player/player_rig.gd` — ram CD `maxf(1.0, 3.0 - ram_recharge)`; harvest
+  radius `2.6 + harvest_range` (4.1 max) in both interact loops.
+- `scenes/v1/entry.gd` — TimeWarp mounted on arena; **C** = stasis burst
+  (x1: 2.5 s/12 s cd @ 0.7; x2: 5.0 s/10 s cd @ 0.5); crystal shield applies
+  at boot (+25 integrity/max, f3).
+- `ui/research_screen.gd` — two pages of 7 (P flips, 1-7 buy the visible page,
+  key labels relabel per page).
+- `progression/progression_model.gd` — model purchase rule gains the TEMPORAL
+  chain.
+
+**Validation** — `tests/v1/m6_probe.gd`: **14/14** (catalog 14/5/45; full-catalog
+buy at 45/5; mech wallet gate 6<8; turret 25/0.25/12 m; wall 90; burst state
+0.5/5/10 + recharge lock; grunt 0.93 m in 0.67 s under stasis; UI 2-page flip;
+persist: crystal 75/75, rover 150 hp/10.5/2.0 s cd/4.1 m radius, turret line
+persisted, harvest + mech transform at persisted chassis). Regression: m1 8/8,
+m2 13/13, m3 13/13, m4 18/18, m5 13/13, progression 10/10 (catalog check
+flipped to >= 45, earliest-win 5/9/13/17 + attempt-5 win unchanged), 2D smoke
+71/71.
+
+**Gotchas**
+- `debug_instant_wave(n)` spawns exactly **n** grunts — probes asserting wave
+  size 3 must pass 3.
+- Edge spawns can be mid-fall: vertical velocity inflates `|v|`; speed probes
+  must measure horizontal displacement.
+- Starting cargo is **2** (M2 design) — probes funding the mech transform set
+  `entry.cargo` directly; deposits are single-use per attempt.
+- Saving while an attempt is still running resurrects its checkpoint on the
+  next boot: probes must WIN (flow stopped) before the save that seeds entry 2.
+- New `class_name` (TimeWarp, Turret) requires `--import` before the first run
+  or dependent scripts fail to compile.

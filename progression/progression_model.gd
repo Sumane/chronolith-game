@@ -102,7 +102,7 @@ static func simulate_attempt(start_earned: int, start_spent: int,
 		# next wave, buy the next line node while affordable (mixed builds:
 		# any line is a valid counter — the search covers all three).
 		if balance > 0:
-			for chain in [line_chain("TURRET"), line_chain("FORT"), line_chain("ROVER")]:
+			for chain in [line_chain("TURRET"), line_chain("FORT"), line_chain("ROVER"), line_chain("TEMPORAL")]:
 				for id in chain:
 					if _can_buy(researched, id, balance):
 						var cost := int(ResearchTree.NODES[id]["cost"])

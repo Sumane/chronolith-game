@@ -109,7 +109,10 @@ func _apply_effects(b: Node) -> void:
 		b.set("hp", wall_max)
 	else:
 		b.set("dmg", int(10 + float(efs.get("turret_damage", 0.0))))
-		b.set("cooldown", maxf(0.2, 0.8 - float(efs.get("turret_cooldown", 0.0))))
+		# turret_split is a multiplier (single node); floor keeps it sane
+		var cd_base: float = maxf(0.2, 0.8 - float(efs.get("turret_cooldown", 0.0)))
+		b.set("cooldown", maxf(0.2, cd_base * float(efs.get("turret_split", 1.0))))
+		b.set("range_m", Turret.RANGE + float(efs.get("turret_range", 0.0)))
 	b.set("repair_rate", float(efs.get("wall_repair", 0.0)))
 
 func commit() -> Dictionary:
