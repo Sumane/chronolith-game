@@ -13,6 +13,7 @@ var arena
 var wallet: Node = null
 var combat: Combat = null
 var aim_source: Node = null
+var knowledge: Knowledge = null
 var _ghost: MeshInstance3D
 
 signal build_placed(building: Node, cell: Vector2i)
@@ -98,6 +99,19 @@ func _snap_ok(c: Vector2i) -> bool:
 	var hi := maxf(maxf(hs[0], hs[1]), maxf(hs[2], hs[3]))
 	return hi - lo <= 0.6
 
+func _apply_effects(b: Node) -> void:
+	if knowledge == null:
+		return
+	var efs: Dictionary = knowledge.applied()
+	var wall_max := int(60 + float(efs.get("wall_hp", 0.0)))
+	if current_type == "wall":
+		b.set("max_hp", wall_max)
+		b.set("hp", wall_max)
+	else:
+		b.set("damage", int(10 + float(efs.get("turret_damage", 0.0))))
+		b.set("cooldown", maxf(0.2, 0.8 - float(efs.get("turret_cooldown", 0.0))))
+	b.set("repair_rate", float(efs.get("wall_repair", 0.0)))
+
 func commit() -> Dictionary:
 	if not active:
 		return {"ok": false, "reason": "no_build_mode"}
@@ -115,6 +129,7 @@ func commit() -> Dictionary:
 		(b as Node).set("combat", combat)
 	b.position = cell_center(c)
 	(b as Node).set("cell", c)
+	_apply_effects(b)
 	occupied[c] = true
 	arena.get_parent().add_child(b)
 	build_placed.emit(b, c)

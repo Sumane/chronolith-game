@@ -11,6 +11,15 @@ var arena
 var flow: GameFlow
 var director: WaveDirector
 var build: BuildService
+var knowledge: Knowledge
+var profile: ProfileStore
+var attempt_id := ""
+var research_screen: ResearchScreen
+var research_open := false
+var profile_recovered := false
+var _saved_attempt_id := ""
+var _saved_wave := 0
+var _saved_cargo := 0
 var hud: HudLayer
 var _overlay: CanvasLayer
 var _end_overlay: CanvasLayer
@@ -21,6 +30,9 @@ var _banner := ""
 var _hud_t := 0.0
 
 func _ready() -> void:
+	# explicit pause semantics: this subtree must honor tree.paused even when
+	# embedded under an ALWAYS parent (headless probes)
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	InputSetup.setup()
 	_register_actions()
 	arena = (ResourceLoader.load("res://scenes/v1/arena.tscn") as PackedScene).instantiate()
@@ -47,12 +59,24 @@ func _ready() -> void:
 	build.combat = combat
 	build.aim_source = rig
 	add_child(build)
+	knowledge = Knowledge.new()
+	profile = ProfileStore.new()
+	_load_profile()
+	rig.apply_research(knowledge.applied())
+	build.knowledge = knowledge
+	research_screen = ResearchScreen.new()
+	research_screen.name = "ResearchScreen"
+	research_screen.knowledge = knowledge
+	research_screen.on_purchase = _research_save
+	research_screen.on_close = _research_closed
+	add_child(research_screen)
 	hud = (ResourceLoader.load("res://ui/hud.tscn") as PackedScene).instantiate() as HudLayer
 	hud.name = "HUD"
 	add_child(hud)
 	_build_pause_overlay()
 	_build_end_overlay()
 	_wire()
+	_resume_checkpoint()
 	_refresh_hud()
 	print("M2_ENTRY_READY")
 
@@ -103,6 +127,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		rig.build_locked = false
 	elif event.is_action_pressed("early_start"):
 		director.early_start()
+	elif event.is_action_pressed("research_toggle"):
+		_open_research()
 	elif event.is_action_pressed("restart_attempt"):
 		get_tree().reload_current_scene()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and build.active:
@@ -125,6 +151,7 @@ func _register_actions() -> void:
 	_add_key("build_wall", KEY_1)
 	_add_key("build_turret", KEY_2)
 	_add_key("early_start", KEY_N)
+	_add_key("research_toggle", KEY_G)
 
 func _add_key(action: String, keycode: Key) -> void:
 	if InputMap.has_action(action):
@@ -159,12 +186,20 @@ func _on_wave_started(wave: int, direction: String) -> void:
 	_set_banner("WAVE %d INBOUND FROM THE %s — HOLD THE CRYSTAL" % [wave, direction])
 
 func _on_wave_cleared(wave: int) -> void:
-	_set_banner("WAVE %d CLEARED — PREP FOR WAVE %d" % [wave, wave + 1])
+	var got := knowledge.grant_wave(attempt_id, wave)
+	if got:
+		_set_banner("WAVE %d CLEARED — +1 ENGRAM (G: RESEARCH)" % wave)
+		_save_profile()
+	else:
+		_set_banner("WAVE %d CLEARED (ENGRAM ALREADY RECORDED)" % wave)
 
 func _on_ended(result: String) -> void:
 	get_tree().paused = true
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	_pause_gate.disabled = true
+	if result == "win":
+		knowledge.grant_wave(attempt_id, WaveDirector.WAVE_SIZES.size())
+	_save_profile()
 	if result == "win":
 		_end_label.text = "PROTOTYPE RESULT: THREE-WAVE WIN\n(R — new attempt)"
 	else:
@@ -174,6 +209,74 @@ func _on_ended(result: String) -> void:
 
 func _on_pause_toggled(paused: bool) -> void:
 	_overlay.visible = paused
+
+# ------------------------------------------------------------- M3 knowledge --
+
+func _load_profile() -> void:
+	var loaded: Dictionary = profile.load()
+	if not loaded.get("ok", false):
+		return
+	profile_recovered = bool(loaded.get("recovered", false))
+	var data: Dictionary = loaded["data"]
+	knowledge.restore(data.get("knowledge", {}))
+	var att: Dictionary = data.get("attempt", {})
+	if att.size() > 0:
+		_saved_attempt_id = str(att.get("id", ""))
+		_saved_wave = int(att.get("wave", 0))
+		_saved_cargo = int(att.get("cargo", 0))
+
+func _resume_checkpoint() -> void:
+	if _saved_attempt_id != "" and _saved_wave > 0:
+		attempt_id = _saved_attempt_id
+		cargo = _saved_cargo
+		director.wave = _saved_wave
+		director.state = WaveDirector.State.PREP
+		director.prep_left = WaveDirector.PREP_TIME
+		_set_banner("CHECKPOINT RESTORED: WAVE %d OF 3" % _saved_wave)
+	else:
+		attempt_id = _new_attempt_id()
+
+func _new_attempt_id() -> String:
+	return str(Time.get_ticks_msec()) + "-" + str(randi() % 100000)
+
+func _profile_data() -> Dictionary:
+	var d := {
+		"schema_version": ProfileStore.SCHEMA_VERSION,
+		"knowledge": knowledge.snapshot(),
+		"story_flags": {},
+	}
+	if flow.running:
+		d["attempt"] = {"id": attempt_id, "wave": director.wave, "cargo": cargo}
+	else:
+		d["attempt"] = {}
+	return d
+
+func _save_profile() -> Dictionary:
+	return profile.save(_profile_data())
+
+func _research_save(_id: String) -> Dictionary:
+	var d := _save_profile()
+	if d.get("ok", false):
+		_set_banner("RESEARCHED — ENGRAM SPENT (SAVED)")
+	return d
+
+func _open_research() -> void:
+	if research_open or not flow.running:
+		return
+	if director.state != WaveDirector.State.PREP:
+		_set_banner("RESEARCH BETWEEN WAVES ONLY (PREP PHASE)")
+		return
+	research_open = true
+	get_tree().paused = true
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	_pause_gate.disabled = true
+	research_screen.show_screen()
+
+func _research_closed() -> void:
+	research_open = false
+	get_tree().paused = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	_pause_gate.disabled = false
 
 # ------------------------------------------------------------- HUD -----------
 

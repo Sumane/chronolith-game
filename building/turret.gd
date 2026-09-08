@@ -3,7 +3,10 @@ extends BuildingBase
 ## Targets nearest enemy with clear line of sight; fires through Combat.
 
 const RANGE := 8.0
-const COOLDOWN := 0.8
+const COOLDOWN_DEFAULT := 0.8
+
+var damage := 10
+var cooldown := COOLDOWN_DEFAULT
 const SCAN := 0.25
 
 var combat: Combat
@@ -80,8 +83,8 @@ func _physics_process(delta: float) -> void:
 	var tp: Vector3 = _target.global_position + Vector3(0, 0.6, 0)
 	_head.look_at(tp, Vector3.UP)
 	if _cd <= 0.0 and _has_los(tp):
-		_cd = COOLDOWN
-		combat.fire(_muzzle.global_position, tp, [get_rid()])
+		_cd = cooldown
+		combat.fire(_muzzle.global_position, tp, [get_rid()], damage)
 
 func _pick_target() -> void:
 	var best: Node = null

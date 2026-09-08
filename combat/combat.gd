@@ -7,7 +7,8 @@ signal hit_resolved(at: Vector3, target: Node, damage: int)
 
 const DAMAGE := 10
 
-func fire(from: Vector3, to: Vector3, exclude: Array = []) -> Dictionary:
+func fire(from: Vector3, to: Vector3, exclude: Array = [], dmg: int = -1) -> Dictionary:
+	var damage := DAMAGE if dmg < 0 else dmg
 	var space := get_world_3d().direct_space_state
 	var q := PhysicsRayQueryParameters3D.create(from, to, -1, exclude)
 	var hit: Dictionary = space.intersect_ray(q)
@@ -20,8 +21,8 @@ func fire(from: Vector3, to: Vector3, exclude: Array = []) -> Dictionary:
 	var collider: Object = hit.get("collider")
 	if collider is Node and (collider as Node).is_in_group("damageable") and collider.has_method("damage"):
 		result["target"] = collider
-		(collider as Node).damage(DAMAGE)
-		hit_resolved.emit(result["at"], collider, DAMAGE)
+		(collider as Node).damage(damage)
+		hit_resolved.emit(result["at"], collider, damage)
 	return result
 
 func _tracer(from: Vector3, to: Vector3) -> void:

@@ -9,11 +9,22 @@ Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
 [  83% ] [90m[1mfirst_scan_filesystem[22m | Starting file scan...[39m[0m
 [92m[ DONE ][39m [1mfirst_scan_filesystem[22m
 [0m
-[   0% ] [90m[1mupdate_scripts_classes[22m | Started Registering global classes... (4 steps)[39m[0m
-[   0% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
-[  20% ] [90m[1mupdate_scripts_classes[22m | Grunt[39m[0m
-[  40% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
-[  60% ] [90m[1mupdate_scripts_classes[22m | WaveDirector[39m[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | Started Registering global classes... (15 steps)[39m[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | BuildingBase[39m[0m
+[   6% ] [90m[1mupdate_scripts_classes[22m | BuildService[39m[0m
+[  12% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  18% ] [90m[1mupdate_scripts_classes[22m | Combat[39m[0m
+[  25% ] [90m[1mupdate_scripts_classes[22m | Grunt[39m[0m
+[  31% ] [90m[1mupdate_scripts_classes[22m | ProfileStore[39m[0m
+[  37% ] [90m[1mupdate_scripts_classes[22m | Knowledge[39m[0m
+[  43% ] [90m[1mupdate_scripts_classes[22m | ResearchTree[39m[0m
+[  50% ] [90m[1mupdate_scripts_classes[22m | PlayerRig[39m[0m
+[  56% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  62% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  68% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  75% ] [90m[1mupdate_scripts_classes[22m | ResearchScreen[39m[0m
+[  81% ] [90m[1mupdate_scripts_classes[22m | WaveDirector[39m[0m
+[  87% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
 [92m[ DONE ][39m [1mupdate_scripts_classes[22m
 [0m
 [   0% ] [90m[1mloading_editor_layout[22m | Started Loading editor (5 steps)[39m[0m

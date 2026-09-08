@@ -6,12 +6,17 @@ extends StaticBody3D
 var max_hp := 60
 var hp := 60
 var cell := Vector2i.ZERO  # occupied grid cell (1 m cells, arena origin -20,-20)
+var repair_rate := 0.0  # M3 Auto-Welder: hp/s self-repair
 
 signal hp_changed(hp: int)
 signal destroyed(building: Node)
 
 func _ready() -> void:
 	add_to_group("building")
+
+func _physics_process(delta: float) -> void:
+	if repair_rate > 0.0 and hp > 0 and hp < max_hp:
+		hp = mini(max_hp, hp + repair_rate * delta)
 
 func repair(n: int) -> int:
 	var before := hp

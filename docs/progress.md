@@ -2,9 +2,9 @@
 
 ## Current milestone
 
-**M1 — Establish the intended game view: BUILT (2026-09-07, branch `v1`).**
-Awaiting Marc's camera/feel review (the first product checkpoint). Next:
-**M2 — Playable threat loop** (only after feel feedback is settled).
+**M3 — Engrams, full planning pause, persistence: BUILT (branch `v1`).**
+M1 feel review (camera/weight) still open — tuning-only when it lands.
+Next: **M4 — Prove counter freedom and the progression model**.
 
 ## M1 acceptance (machine-verified)
 
@@ -37,7 +37,9 @@ godot --path . res://scenes/v1/entry.tscn
 ```
 WASD drive, mouse orbit/aim (cursor hidden, crosshair ring), LMB fire,
 Esc pause. M2: E harvest/repair, 1 wall / 2 turret (LMB place, X/Esc cancel),
-N early start, R new attempt after loss. Gamepad works too.
+N early start, R new attempt after loss. **M3: G opens Engram Research
+between waves (1-6 buy, Esc/G closes; the whole sim pauses).** Gamepad
+works too.
 
 ## M2 — playable three-wave defence (DONE, committed)
 
@@ -70,6 +72,40 @@ real bug where v1 never registered any input actions. v1 adds
 restart_attempt (R), build_wall (1), build_turret (2), early_start (N);
 cancel_build (X/RMB) and fire (Space/LMB), interact (E) come from InputSetup.
 
+
+## M3 — engrams, planning pause, persistence (DONE, committed)
+
+- **Engrams**: 1 per cleared wave (incl. the final wave on win), idempotent
+  per `attempt:wave` receipt — reloading a wave-clear state never re-grants.
+- **Research tree** (`knowledge/research_tree.gd`): 3 lines × 2 tiers, 6
+  nodes, deterministic (costs 1/2, tier-2 requires tier-1): turret
+  damage / cooldown, wall hp / self-repair, rover hp / speed.
+- **Ledger** (`knowledge/knowledge.gd`): earned/spent/balance, atomic
+  research, `applied()` stat rollup.
+- **Research screen** (`ui/research_screen.gd`, blockout): full tree pause;
+  earned/spent/balance, prereq + effect + cost per row; keys 1-6 buy.
+  Purchase = memory apply → **verified save** → on save failure the purchase
+  is rolled back (refund invariant).
+- **ProfileStore** (`core/profile_store.gd`): schema-versioned JSON at
+  `user://chronolith_v1_profile.json`; save = tmp write → round-trip verify
+  → backup → rename; load = original → `.bak` (recovered) → fresh.
+- **Checkpoint**: attempt identity (id, wave, cargo) saved at every
+  wave-clear/purchase/attempt-end; boot resumes the same attempt identity.
+  Physical resources/equipment reset on a new attempt; knowledge + receipts
+  + story flags persist.
+- **Effects**: applied at construction (`BuildService._apply_effects`),
+  rover at boot (`apply_research`); turret damage/cooldown via new
+  `combat.fire(from,to,exclude,dmg)` parameter.
+
+Probe: `res://tests/v1/m3_probe.tscn` → **13/13, exit 0** (fresh boot;
+wave-clear engram + receipt-once; research opens only in prep and pauses the
+tree; **no sim drift across a 4 s planning pause**; purchase f1 → wall
+spawns with 90 hp; **save failure refunds the purchase**; checkpoint load =
+same attempt id/wave/cargo/knowledge; **reloaded wave-clear does not
+re-grant**; nested menu cannot unpause combat; **corrupt save recovers from
+backup**; prereq invariant). M1 **8/8**, M2 **13/13**, 2D **71/71** all
+re-run green.
+
 ## Known limitations
 
 - Navigation = steering + real collision (forward probe + side bias +
@@ -77,7 +113,18 @@ cancel_build (X/RMB) and fire (Space/LMB), interact (E) come from InputSetup.
 - Wall/turret HP and all economy numbers are unvalidated guesses.
 - M1 feel review (camera/orbit/weight) still pending from Marc; M2 tuning
   knobs: `Grunt` SPEED/ATTACK, `WaveDirector` WAVE_SIZES/PREP_TIME,
-  `Turret` RANGE/COOLDOWN, costs in `BuildService.COSTS`.
+  `Turret` RANGE/COOLDOWN, costs in `BuildService.COSTS`; M3:
+  `ResearchTree.NODES` (costs/effects), `PREP_TIME` (planning window).
+- **Pause semantics**: the entry root sets `process_mode = PAUSABLE`
+  explicitly — under an ALWAYS parent (headless probes) an INHERIT subtree
+  would never pause; caught by the M3 drift check.
+- Probes clear `user://chronolith_v1_profile.json*` at boot (shared
+  XDG-isolated user:// — real player saves under `~/.local/share` are
+  untouched).
+- **Release gap (accepted for M3)**: research is between-wave only
+  (PREP phase); mid-wave suspension not implemented.
+- v0 `user://chronolith_save.json` (schema v1) is NOT migratable to the
+  v1 ProfileStore.
 - 4.7.1 API notes: raycasts =
   `PhysicsRayQueryParameters3D.create(from,to,mask,exclude)` +
   `space.intersect_ray(query)`; mesh arrays = `ARRAY_MAX`-sized slot array
@@ -87,17 +134,23 @@ cancel_build (X/RMB) and fire (Space/LMB), interact (E) come from InputSetup.
   const in waves_controller — 3D grunt is `Grunt`); `:=` cannot infer from
   Variant members (untyped `Node` refs / Dictionary indexes).
 
-## Exact next task (M3, from chronolith-agent-tasks.md)
+## Exact next task (M4, from chronolith-agent-tasks.md)
 
-Engrams: full planning pause, engram spend/preview, persistence +
-ProfileStore (schema-versioned saves).
+Prove counter freedom and the progression model: one protected enemy with
+≥3 visible counter paths (turret/wall/rover); bounded emergency nukes with
+one explicit wave-clearing behaviour; fast offline progression model
+sharing game data (illustrative thresholds → real costs/prereqs/respec/
+bypass routes/final mech); route-trace export showing why attempts 1-4
+cannot win and a fifth-attempt path that can; playtest all three solutions.
 
 ## Changed files (this milestone)
 
-- New: `world/deposit.gd`, `chronolith/crystal.gd`, `building/{
-  building_base,wall,turret,build_service}.gd`, `combat/enemy.gd`,
-  `waves/wave_director.gd`, `game/flow.gd`, `ui/hud.{gd,tscn}`,
-  `tests/v1/m2_probe.{gd,tscn}`
-- Changed: `world/arena.gd` (crystal node, deposits, rock_list),
-  `player/player_rig.gd` (hp, interact channel, can_fire, debug hooks),
-  `scenes/v1/entry.gd` (full M2 wiring, overlays, wallet), `docs/progress.md`
+- New: `knowledge/research_tree.gd`, `knowledge/knowledge.gd`,
+  `core/profile_store.gd`, `ui/research_screen.gd`,
+  `tests/v1/m3_probe.{gd,tscn}`
+- Changed: `scenes/v1/entry.gd` (profile load/checkpoint, engram grants,
+  research toggle, explicit PAUSABLE mode), `building/build_service.gd`
+  (effect application), `building/building_base.gd` (self-repair),
+  `building/turret.gd` (damage/cooldown vars), `combat/combat.gd`
+  (per-shot dmg), `player/player_rig.gd` (speed var, apply_research),
+  `tests/v1/m2_probe.gd` (profile isolation), `docs/progress.md`

@@ -24,6 +24,11 @@ func _physics_process(_delta: float) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# hermetic: clear any v1 profile left by other probes (shared XDG-isolated user://)
+	for pth in ["chronolith_v1_profile.json", "chronolith_v1_profile.json.bak", "chronolith_v1_profile.json.tmp"]:
+		var gp := ProjectSettings.globalize_path("user://" + pth)
+		if FileAccess.file_exists(gp):
+			DirAccess.remove_absolute(gp)
 	randomize()
 	_run()
 

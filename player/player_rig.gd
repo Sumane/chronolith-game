@@ -6,7 +6,7 @@ extends Node3D
 ## PC: WASD + mouse orbit/aim, LMB fire, Esc pause.
 ## Gamepad: left stick move, right stick camera, A fire, Start pause.
 
-const SPEED := 9.0
+var speed := 9.0
 const CAM_DIST := 6.5
 const CAM_MIN := 1.4
 const FIRE_CD := 0.25
@@ -104,7 +104,7 @@ func _drive(delta: float, move: Vector2) -> void:
 		if dirv.length() > 0.1:
 			fwd = dirv.normalized()
 	var right := Vector3(-fwd.z, 0.0, fwd.x)
-	var wish := (fwd * move.y + right * move.x) * SPEED
+	var wish := (fwd * move.y + right * move.x) * speed
 	_rover.velocity = _rover.velocity.lerp(wish, 1.0 - exp(-6.0 * delta))
 	if not _rover.is_on_floor():
 		_rover.velocity += Vector3(0, -25.0, 0) * delta
@@ -169,6 +169,11 @@ func damage(n: int) -> void:
 		return
 	hp = maxi(0, hp - n)
 	hp_changed.emit(hp)
+
+func apply_research(efs: Dictionary) -> void:
+	max_hp += int(efs.get("rover_hp", 0.0))
+	hp = max_hp
+	speed += float(efs.get("rover_speed", 0.0))
 
 func aim_point() -> Vector3:
 	return _aim_pos
