@@ -6,6 +6,7 @@ extends Node
 const WAVE_SIZES := [3, 4, 5]
 const PREP_TIME := 20.0
 const SPAWN_STAGGER := 0.8
+const WARDEN_WAVES := {3: 1}  # M4: protected enemy joins wave 3
 
 enum State { PREP, ASSAULT, WIN }
 
@@ -27,6 +28,7 @@ const EDGES := [
 signal wave_started(wave: int, direction: String)
 signal wave_cleared(wave: int)
 signal attempt_won()
+signal warden_event(w: Warden, kind: String)
 
 func _physics_process(delta: float) -> void:
 	if state == State.PREP:
@@ -47,6 +49,9 @@ func _start_assault() -> void:
 		var t := get_tree().create_timer(i * SPAWN_STAGGER)
 		t.timeout.connect(_spawn_grunt.bind(e))
 	wave_started.emit(wave, _edge_name(EDGES[sector]))
+	var wcnt: int = WARDEN_WAVES.get(wave, 0)
+	for j in wcnt:
+		_spawn_warden(EDGES[(sector + WAVE_SIZES[wave - 1]) % EDGES.size()])
 
 func _spawn_grunt(edge: Vector3) -> void:
 	if state != State.ASSAULT:
@@ -61,7 +66,34 @@ func _spawn_grunt(edge: Vector3) -> void:
 	g.died.connect(_on_grunt_died)
 	arena.get_parent().add_child(g)
 
-func _on_grunt_died(_e: Grunt) -> void:
+## Probe-only: spawn a Warden at a world position without touching
+## state/alive (so counter-path tests can run in any phase).
+func debug_spawn_warden(pos: Vector3) -> Warden:
+	var w: Warden = load("res://combat/warden.gd").new()
+	w.position = pos
+	w.goal = crystal
+	w.arena = arena
+	w._rover = rover
+	w.died.connect(_on_grunt_died)
+	w.warden_event.connect(func(w2: Warden, k2: String) -> void: warden_event.emit(w2, k2))
+	arena.get_parent().add_child(w)
+	return w
+
+func _spawn_warden(edge: Vector3) -> void:
+	if state != State.ASSAULT:
+		return
+	var w: Warden = load("res://combat/warden.gd").new()
+	w.position = Vector3(edge.x, 1.0, edge.z)
+	if arena != null and arena.has_method("height_at"):
+		w.position.y = arena.height_at(edge.x, edge.z) + 0.5
+	w.goal = crystal
+	w.arena = arena
+	w._rover = rover
+	w.died.connect(_on_grunt_died)
+	w.warden_event.connect(func(w2: Warden, k2: String) -> void: warden_event.emit(w2, k2))
+	arena.get_parent().add_child(w)
+
+func _on_grunt_died(_e) -> void:
 	alive -= 1
 	if state == State.ASSAULT and alive <= 0:
 		if wave >= WAVE_SIZES.size():
@@ -81,6 +113,9 @@ func debug_instant_wave(n: int) -> void:
 	while i < n:
 		_spawn_grunt(EDGES[i % EDGES.size()])
 		i += 1
+	if WARDEN_WAVES.has(wave):
+		_spawn_warden(EDGES[(n) % EDGES.size()])
+		alive += 1
 
 func _edge_name(e: Vector3) -> String:
 	if absf(e.z) > absf(e.x):

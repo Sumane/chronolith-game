@@ -108,7 +108,7 @@ func _apply_effects(b: Node) -> void:
 		b.set("max_hp", wall_max)
 		b.set("hp", wall_max)
 	else:
-		b.set("damage", int(10 + float(efs.get("turret_damage", 0.0))))
+		b.set("dmg", int(10 + float(efs.get("turret_damage", 0.0))))
 		b.set("cooldown", maxf(0.2, 0.8 - float(efs.get("turret_cooldown", 0.0))))
 	b.set("repair_rate", float(efs.get("wall_repair", 0.0)))
 

@@ -7,7 +7,7 @@ signal hit_resolved(at: Vector3, target: Node, damage: int)
 
 const DAMAGE := 10
 
-func fire(from: Vector3, to: Vector3, exclude: Array = [], dmg: int = -1) -> Dictionary:
+func fire(from: Vector3, to: Vector3, exclude: Array = [], dmg: int = -1, piercing: bool = false) -> Dictionary:
 	var damage := DAMAGE if dmg < 0 else dmg
 	var space := get_world_3d().direct_space_state
 	var q := PhysicsRayQueryParameters3D.create(from, to, -1, exclude)
@@ -21,7 +21,10 @@ func fire(from: Vector3, to: Vector3, exclude: Array = [], dmg: int = -1) -> Dic
 	var collider: Object = hit.get("collider")
 	if collider is Node and (collider as Node).is_in_group("damageable") and collider.has_method("damage"):
 		result["target"] = collider
-		(collider as Node).damage(damage)
+		if collider is Warden:
+			collider.call("damage", damage, piercing)
+		else:
+			(collider as Node).damage(damage)
 		hit_resolved.emit(result["at"], collider, damage)
 	return result
 

@@ -51,8 +51,11 @@ func _ready() -> void:
 	hint_label = hint
 	add_child(root)
 
-func set_scrap(n: int, cost_w: int, cost_t: int) -> void:
-	scrap_label.text = "SCRAP %d   (wall %d / turret %d)" % [n, cost_w, cost_t]
+func set_scrap(n: int, cost_w: int, cost_t: int, nukes: int = -1) -> void:
+	if nukes >= 0:
+		scrap_label.text = "SCRAP %d   (wall %d / turret %d / nuke F x%d)" % [n, cost_w, cost_t, nukes]
+	else:
+		scrap_label.text = "SCRAP %d   (wall %d / turret %d)" % [n, cost_w, cost_t]
 
 func set_wave(state_name: String, wave: int, total: int, info: String) -> void:
 	wave_label.text = "WAVE %d/%d  %s  %s" % [wave, total, state_name, info]

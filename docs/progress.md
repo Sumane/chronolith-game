@@ -134,23 +134,61 @@ re-run green.
   const in waves_controller — 3D grunt is `Grunt`); `:=` cannot infer from
   Variant members (untyped `Node` refs / Dictionary indexes).
 
-## Exact next task (M4, from chronolith-agent-tasks.md)
+## M4 — counter freedom + progression model (DONE, committed)
 
-Prove counter freedom and the progression model: one protected enemy with
-≥3 visible counter paths (turret/wall/rover); bounded emergency nukes with
-one explicit wave-clearing behaviour; fast offline progression model
-sharing game data (illustrative thresholds → real costs/prereqs/respec/
-bypass routes/final mech); route-trace export showing why attempts 1-4
-cannot win and a fifth-attempt path that can; playtest all three solutions.
+- **Warden** (`combat/warden.gd`, joins wave 3 via `WaveDirector.WARDEN_WAVES`):
+  150 hp, armor 5 (flat; bypassed by pierce/ram/deflect), seek->tell (1.2 s
+  telegraph)->charge (3.5 m/s, 1.6 s)->hit 25 dmg; deflects turret rounds
+  (40 dmg, 5 m) unless hit while charging; rovers aggro within 6 m and take
+  priority over the crystal.
+- **Three counter paths, all machine-verified (M4 probe 18/18):**
+  1. *Turret (pierce)* - research t1 gives piercing shots that bypass armor;
+     verified: 10-dmg pierce kills a charging Warden, armor shows `resist`
+     HUD feedback against flat shots.
+  2. *Wall* - Warden path blocked by wall; melee branch attacks buildings
+     (<7 m) instead of the crystal; wall hp drain verified.
+  3. *Rover (ram)* - LShift: 30 pierce damage, -15 rover hp, 3 s cooldown,
+     4.5 m ray (long enough for camera-aim muzzle offset); verified 5 rams
+     kill a 150 hp Warden (armor bypassed).
+- **Nuke**: F, 1 charge/attempt (standard), clears the whole field; permissive
+  2-charge case exists only in the progression model (GDD check case).
+- **Progression model** (`progression/progression_model.gd` +
+  `tests/v1/progression_probe.tscn`, 10/10): shares `ResearchTree` data,
+  ledger/nuke/respec rules; reproduces the GDD reference table (5/9/13/17
+  clears, cumulative 5/14/27/44, win attempt 5); exhaustive search over
+  nukes 0/1/2 x respec x placements proves **earliest win = attempt 5
+  under every strategy** and attempts 1-4 infeasible (gaps exported to
+  `docs/progression-traces.json`); real catalog depth (9) vs wave-16
+  threshold (45) quantifies the M6 research-graph expansion.
+  Full limitation list: `docs/progression-model.md`.
+- **Regression note (M2 probe)**: wave 3 now carries a Warden - the M2
+  kill loop ray is blocked by the (9,-2) rock at the Warden's spawn edge,
+  so the probe finishes unreachable enemies with a direct hit (test
+  convenience, documented in `tests/v1/m2_probe.gd`).
+- **4.7.1 API notes added**: crystal collider is a *child* StaticBody3D
+  (ray hits the child, never the Chronolith node); a ray starting inside a
+  non-excluded StaticBody3D returns `{}`; a freshly spawned collider is not
+  visible to same-frame rays (~15 frames to sync); `var x := <Variant>`
+  parse error -> use explicit types.
+- **Tuning bug note**: `turret.gd` had `var damage` shadowing the parent
+  `func damage(n)` - renamed `dmg` (M4 parse-error fix).
+
+## Exact next task (M5, from chronolith-agent-tasks.md)
+
+Prototype the mech payoff: one Hybrid stage + one warrior-mech stage
+research/construct; clearly changed body, mobility, weapons, camera;
+command target that requires the mech while base enemies keep attacking;
+defence-heavy and rover-heavy routes both reachable. Short integrated
+scenario proves the mech is exciting and necessary.
 
 ## Changed files (this milestone)
 
-- New: `knowledge/research_tree.gd`, `knowledge/knowledge.gd`,
-  `core/profile_store.gd`, `ui/research_screen.gd`,
-  `tests/v1/m3_probe.{gd,tscn}`
-- Changed: `scenes/v1/entry.gd` (profile load/checkpoint, engram grants,
-  research toggle, explicit PAUSABLE mode), `building/build_service.gd`
-  (effect application), `building/building_base.gd` (self-repair),
-  `building/turret.gd` (damage/cooldown vars), `combat/combat.gd`
-  (per-shot dmg), `player/player_rig.gd` (speed var, apply_research),
-  `tests/v1/m2_probe.gd` (profile isolation), `docs/progress.md`
+- New: `combat/warden.gd`, `progression/progression_model.gd`,
+  `tests/v1/m4_probe.{gd,tscn}`, `tests/v1/progression_probe.{gd,tscn}`,
+  `docs/progression-model.md`, `docs/progression-traces.json`
+- Changed: `waves/wave_director.gd` (WARDEN_WAVES, warden spawn/relay),
+  `player/player_rig.gd` (ram), `scenes/v1/entry.gd` (ram/nuke keys,
+  nuke charge, warden events to HUD), `ui/hud.gd` (resist/telegraph/
+  nuke/ram feedback), `combat/combat.gd` (pierce/deflect hit kinds),
+  `building/turret.gd` (dmg var, deflect), `building/build_service.gd`,
+  `tests/v1/m2_probe.gd` (Warden-aware kill loop), `docs/progress.md`

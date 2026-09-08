@@ -5,7 +5,7 @@ extends BuildingBase
 const RANGE := 8.0
 const COOLDOWN_DEFAULT := 0.8
 
-var damage := 10
+var dmg := 10
 var cooldown := COOLDOWN_DEFAULT
 const SCAN := 0.25
 
@@ -84,7 +84,7 @@ func _physics_process(delta: float) -> void:
 	_head.look_at(tp, Vector3.UP)
 	if _cd <= 0.0 and _has_los(tp):
 		_cd = cooldown
-		combat.fire(_muzzle.global_position, tp, [get_rid()], damage)
+		combat.fire(_muzzle.global_position, tp, [get_rid()], dmg, true)
 
 func _pick_target() -> void:
 	var best: Node = null
@@ -103,4 +103,4 @@ func _has_los(to: Vector3) -> bool:
 	if hit.is_empty():
 		return true
 	var c: Object = hit.get("collider")
-	return c == _target or c is Grunt
+	return c == _target or (c is Node and (c as Node).is_in_group("enemy"))

@@ -1,0 +1,667 @@
+{
+	"attempt_1_4_gaps": [
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=0 respec=false holdout=0",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=0 respec=false holdout=0",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=0 respec=false holdout=0",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=0 respec=false holdout=0",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=0 respec=false holdout=1",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=0 respec=false holdout=1",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=0 respec=false holdout=1",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=0 respec=false holdout=1",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=0 respec=false holdout=2",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=0 respec=false holdout=2",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=0 respec=false holdout=2",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=0 respec=false holdout=2",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=0 respec=true holdout=0",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=0 respec=true holdout=0",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=0 respec=true holdout=0",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=0 respec=true holdout=0",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=0 respec=true holdout=1",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=0 respec=true holdout=1",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=0 respec=true holdout=1",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=0 respec=true holdout=1",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=0 respec=true holdout=2",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=0 respec=true holdout=2",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=0 respec=true holdout=2",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=0 respec=true holdout=2",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 7,
+			"earned_end": 5,
+			"strategy": "nukes=1 respec=false holdout=0",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 11,
+			"earned_end": 14,
+			"strategy": "nukes=1 respec=false holdout=0",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 15,
+			"earned_end": 27,
+			"strategy": "nukes=1 respec=false holdout=0",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 19,
+			"earned_end": 44,
+			"strategy": "nukes=1 respec=false holdout=0",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=1 respec=false holdout=1",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=1 respec=false holdout=1",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=1 respec=false holdout=1",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=1 respec=false holdout=1",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=1 respec=false holdout=2",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=1 respec=false holdout=2",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=1 respec=false holdout=2",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=1 respec=false holdout=2",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 7,
+			"earned_end": 5,
+			"strategy": "nukes=1 respec=true holdout=0",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 11,
+			"earned_end": 14,
+			"strategy": "nukes=1 respec=true holdout=0",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 15,
+			"earned_end": 27,
+			"strategy": "nukes=1 respec=true holdout=0",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 19,
+			"earned_end": 44,
+			"strategy": "nukes=1 respec=true holdout=0",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=1 respec=true holdout=1",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=1 respec=true holdout=1",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=1 respec=true holdout=1",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=1 respec=true holdout=1",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=1 respec=true holdout=2",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=1 respec=true holdout=2",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=1 respec=true holdout=2",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=1 respec=true holdout=2",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 8,
+			"earned_end": 5,
+			"strategy": "nukes=2 respec=false holdout=0",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 12,
+			"earned_end": 14,
+			"strategy": "nukes=2 respec=false holdout=0",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 16,
+			"earned_end": 27,
+			"strategy": "nukes=2 respec=false holdout=0",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 20,
+			"earned_end": 44,
+			"strategy": "nukes=2 respec=false holdout=0",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=2 respec=false holdout=1",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=2 respec=false holdout=1",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=2 respec=false holdout=1",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=2 respec=false holdout=1",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=2 respec=false holdout=2",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=2 respec=false holdout=2",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=2 respec=false holdout=2",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=2 respec=false holdout=2",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 8,
+			"earned_end": 5,
+			"strategy": "nukes=2 respec=true holdout=0",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 12,
+			"earned_end": 14,
+			"strategy": "nukes=2 respec=true holdout=0",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 16,
+			"earned_end": 27,
+			"strategy": "nukes=2 respec=true holdout=0",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 20,
+			"earned_end": 44,
+			"strategy": "nukes=2 respec=true holdout=0",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=2 respec=true holdout=1",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=2 respec=true holdout=1",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=2 respec=true holdout=1",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=2 respec=true holdout=1",
+			"threshold_at_block": 45
+		},
+		{
+			"attempt": 1,
+			"blocked_wave": 6,
+			"earned_end": 5,
+			"strategy": "nukes=2 respec=true holdout=2",
+			"threshold_at_block": 6
+		},
+		{
+			"attempt": 2,
+			"blocked_wave": 10,
+			"earned_end": 14,
+			"strategy": "nukes=2 respec=true holdout=2",
+			"threshold_at_block": 15
+		},
+		{
+			"attempt": 3,
+			"blocked_wave": 14,
+			"earned_end": 27,
+			"strategy": "nukes=2 respec=true holdout=2",
+			"threshold_at_block": 28
+		},
+		{
+			"attempt": 4,
+			"blocked_wave": 18,
+			"earned_end": 44,
+			"strategy": "nukes=2 respec=true holdout=2",
+			"threshold_at_block": 45
+		}
+	],
+	"catalog_total_cost": 9,
+	"earliest_win_by_nukes": {
+		"0": 5,
+		"1": 5,
+		"2": 5
+	},
+	"mechanic_param": {
+		"build_cost": 8,
+		"cost": 3,
+		"name": "Hybrid Mech (M5 param)",
+		"req": [
+			"r2"
+		]
+	},
+	"model": "M4 progression model (GDD reference schedule + real v1 rules)",
+	"reference_table": {
+		"clears": [
+			5,
+			9,
+			13,
+			17,
+			20
+		],
+		"cumulative": [
+			5,
+			14,
+			27,
+			44,
+			64
+		]
+	},
+	"winning_strategy": "nukes=0 respec=false holdout=0",
+	"winning_trace": [
+		{
+			"attempt": 1,
+			"result": {
+				"balance_end": 0,
+				"blocked_wave": 6,
+				"cleared": 5,
+				"earned_end": 5,
+				"mech_built": false,
+				"nukes_used": {},
+				"purchases": [
+					{
+						"id": "t1",
+						"wave_after": 1
+					},
+					{
+						"id": "f1",
+						"wave_after": 2
+					},
+					{
+						"id": "r1",
+						"wave_after": 3
+					},
+					{
+						"id": "t2",
+						"wave_after": 5
+					}
+				],
+				"scrap_end": 36,
+				"spent_end": 5,
+				"won": false
+			},
+			"start_earned": 0
+		},
+		{
+			"attempt": 2,
+			"result": {
+				"balance_end": 2,
+				"blocked_wave": 10,
+				"cleared": 9,
+				"earned_end": 14,
+				"mech_built": true,
+				"nukes_used": {},
+				"purchases": [
+					{
+						"id": "f2",
+						"wave_after": 2
+					},
+					{
+						"id": "r2",
+						"wave_after": 4
+					},
+					{
+						"id": "mech",
+						"wave_after": 7
+					}
+				],
+				"scrap_end": 52,
+				"spent_end": 12,
+				"won": false
+			},
+			"start_earned": 5
+		},
+		{
+			"attempt": 3,
+			"result": {
+				"balance_end": 12,
+				"blocked_wave": 14,
+				"cleared": 13,
+				"earned_end": 27,
+				"mech_built": true,
+				"nukes_used": {},
+				"purchases": [
+					{
+						"id": "mech",
+						"wave_after": 1
+					}
+				],
+				"scrap_end": 76,
+				"spent_end": 15,
+				"won": false
+			},
+			"start_earned": 14
+		},
+		{
+			"attempt": 4,
+			"result": {
+				"balance_end": 26,
+				"blocked_wave": 18,
+				"cleared": 17,
+				"earned_end": 44,
+				"mech_built": true,
+				"nukes_used": {},
+				"purchases": [
+					{
+						"id": "mech",
+						"wave_after": 0
+					}
+				],
+				"scrap_end": 100,
+				"spent_end": 18,
+				"won": false
+			},
+			"start_earned": 27
+		},
+		{
+			"attempt": 5,
+			"result": {
+				"balance_end": 43,
+				"blocked_wave": -1,
+				"cleared": 20,
+				"earned_end": 64,
+				"mech_built": true,
+				"nukes_used": {},
+				"purchases": [
+					{
+						"id": "mech",
+						"wave_after": 0
+					}
+				],
+				"scrap_end": 118,
+				"spent_end": 21,
+				"won": true
+			},
+			"start_earned": 44
+		}
+	]
+}

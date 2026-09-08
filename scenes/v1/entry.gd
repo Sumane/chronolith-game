@@ -16,6 +16,8 @@ var profile: ProfileStore
 var attempt_id := ""
 var research_screen: ResearchScreen
 var research_open := false
+var nuke_charge := 1
+var _warden_event_t := 0.0
 var profile_recovered := false
 var _saved_attempt_id := ""
 var _saved_wave := 0
@@ -90,6 +92,7 @@ func _wire() -> void:
 	arena.crystal.destroyed_signal.connect(func() -> void: flow.on_crystal_lost())
 	director.wave_started.connect(_on_wave_started)
 	director.wave_cleared.connect(_on_wave_cleared)
+	director.warden_event.connect(_on_warden_event)
 	director.attempt_won.connect(func() -> void: flow.on_won())
 	flow.ended.connect(_on_ended)
 	build.build_placed.connect(func(_b: Node, _c: Vector2i) -> void:
@@ -129,6 +132,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		director.early_start()
 	elif event.is_action_pressed("research_toggle"):
 		_open_research()
+	elif event.is_action_pressed("ram"):
+		if rig.ram():
+			_set_banner("RAM! (-%d rover hp)" % PlayerRig.RAM_COST)
+	elif event.is_action_pressed("nuke"):
+		_fire_nuke()
 	elif event.is_action_pressed("restart_attempt"):
 		get_tree().reload_current_scene()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and build.active:
@@ -152,6 +160,8 @@ func _register_actions() -> void:
 	_add_key("build_turret", KEY_2)
 	_add_key("early_start", KEY_N)
 	_add_key("research_toggle", KEY_G)
+	_add_key("ram", KEY_SHIFT)
+	_add_key("nuke", KEY_F)
 
 func _add_key(action: String, keycode: Key) -> void:
 	if InputMap.has_action(action):
@@ -260,6 +270,39 @@ func _research_save(_id: String) -> Dictionary:
 		_set_banner("RESEARCHED — ENGRAM SPENT (SAVED)")
 	return d
 
+func _fire_nuke() -> void:
+	if not flow.running:
+		return
+	if nuke_charge <= 0:
+		_set_banner("NO NUKE CHARGES LEFT")
+		return
+	nuke_charge -= 1
+	for en in get_tree().get_nodes_in_group("enemy"):
+		if en is Warden:
+			en.call("damage", 9999, true)
+		else:
+			en.call("damage", 9999)
+	_set_banner("EMERGENCY NUKE — FIELD CLEARED (charges left: %d)" % nuke_charge)
+	_refresh_hud()
+
+func debug_nuke() -> void:
+	_fire_nuke()
+
+func _on_warden_event(_w: Warden, kind: String) -> void:
+	var now := float(Time.get_ticks_msec())
+	if _warden_event_t + 900.0 > now:
+		return
+	_warden_event_t = now
+	match kind:
+		"armor":
+			_set_banner("WARDEN ARMOR — reduced damage (turret pierce / ram / wall deflect)")
+		"counter":
+			_set_banner("COUNTER! armor bypassed")
+		"charge":
+			_set_banner("WARDEN CHARGING — put a wall in its lane!")
+		"deflect":
+			_set_banner("DEFLECTED — WARDEN STUNNED (-40 hp)")
+
 func _open_research() -> void:
 	if research_open or not flow.running:
 		return
@@ -293,7 +336,7 @@ func _process(delta: float) -> void:
 func _refresh_hud() -> void:
 	if hud == null:
 		return
-	hud.set_scrap(cargo, BuildService.COSTS["wall"], BuildService.COSTS["turret"])
+	hud.set_scrap(cargo, BuildService.COSTS["wall"], BuildService.COSTS["turret"], nuke_charge)
 	var state := "PREP"
 	var info := "%ds (N early start)" % int(ceilf(director.prep_left))
 	if director.state == WaveDirector.State.ASSAULT:

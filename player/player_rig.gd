@@ -62,6 +62,7 @@ func _physics_process(delta: float) -> void:
 	if ctx != Ctx.PLAY:
 		return
 	_fire_cd = maxf(0.0, _fire_cd - delta)
+	_ram_cd = maxf(0.0, _ram_cd - delta)
 	var move := _read_move_input()
 	if _dbg_t > 0.0:
 		_dbg_t -= delta
@@ -169,6 +170,37 @@ func damage(n: int) -> void:
 		return
 	hp = maxi(0, hp - n)
 	hp_changed.emit(hp)
+
+const RAM_CD := 3.0
+const RAM_COST := 15
+var _ram_cd := 0.0
+
+func ram() -> bool:
+	if _ram_cd > 0.0 or hp <= RAM_COST:
+		return false
+	var from := _muzzle.global_position
+	var dirv := _aim_pos - from
+	if dirv.length() < 0.1:
+		return false
+	dirv = dirv.normalized()
+	var q := PhysicsRayQueryParameters3D.create(from, from + dirv * 4.5, -1, [rover_rid()])
+	var h: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	if h.is_empty():
+		return false
+	var c: Object = h.get("collider")
+	if c is Node and not (c as Node).is_in_group("enemy"):
+		return false
+	if c is Warden:
+		c.call("damage", 30, true)
+	else:
+		(c as Node).call("damage", 30)
+	hp -= RAM_COST
+	hp_changed.emit(hp)
+	_ram_cd = RAM_CD
+	return true
+
+func debug_ram() -> bool:
+	return ram()
 
 func apply_research(efs: Dictionary) -> void:
 	max_hp += int(efs.get("rover_hp", 0.0))

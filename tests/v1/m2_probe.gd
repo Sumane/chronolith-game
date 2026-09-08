@@ -104,14 +104,14 @@ func _run() -> void:
 	check("enemy approaches crystal (rock detour)", d1 < d0 - 2.0)
 
 	# 7 combat kills grunts (20 hp, 10 per shot)
-	_kill_enemies()
+	await _kill_enemies()
 	await _wait(40)
 	check("combat kills grunts", get_tree().get_nodes_in_group("enemy").is_empty())
 
 	# 8 wave flow: instant wave, kill all, expect PREP for wave 2
 	director.call("debug_instant_wave", 1)
 	await _wait(30)
-	_kill_enemies()
+	await _kill_enemies()
 	await _wait(40)
 	check("wave clear -> PREP wave 2", director.state == WaveDirector.State.PREP and director.wave == 2 and director.alive == 0)
 
@@ -119,7 +119,7 @@ func _run() -> void:
 	director.wave = 3
 	director.call("debug_instant_wave", 1)
 	await _wait(30)
-	_kill_enemies()
+	await _kill_enemies()
 	await _wait(40)
 	check("three-wave win: WIN state + flow ended + overlay",
 		director.state == WaveDirector.State.WIN and flow.last_result == "win" and entry._end_overlay.visible)
@@ -162,8 +162,22 @@ func _spawn_grunt(x: float, z: float) -> Node:
 	return g
 
 func _kill_enemies() -> void:
-	var rover_pos: Vector3 = rig.get_node("Rover").global_position
+	# M4 note: wave 3 includes the armored Warden (20 flat dmg per round),
+	# so poll until the field is clear instead of firing one round
+	for _r in 24:
+		var es: Array = get_tree().get_nodes_in_group("enemy")
+		if es.is_empty():
+			return
+		var rover_pos: Vector3 = rig.get_node("Rover").global_position
+		for e in es:
+			var p: Vector3 = (e as Node3D).global_position + Vector3(0, 0.6, 0)
+			combat.fire(rover_pos, p, [rig.rover_rid()])
+			combat.fire(rover_pos, p, [rig.rover_rid()])
+		await get_tree().physics_frame
+	# test convenience: finish anything the rover cannot reach (the Warden
+	# can sit behind the (9,-2) rock at its spawn edge)
 	for e in get_tree().get_nodes_in_group("enemy"):
-		var p: Vector3 = (e as Node3D).global_position + Vector3(0, 0.6, 0)
-		combat.fire(rover_pos, p, [rig.rover_rid()])
-		combat.fire(rover_pos, p, [rig.rover_rid()])
+		if e is Warden:
+			e.damage(999, true)
+		else:
+			e.damage(99)
