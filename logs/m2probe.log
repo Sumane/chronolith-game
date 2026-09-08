@@ -1,0 +1,31 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+M1_ARENA_READY
+M2_ENTRY_READY
+  [ok] boot: full composition present
+  [ok] harvest: cargo 6->7, deposit 5->4
+  [ok] build wall: placed, spent 2
+  [ok] no duplicate placement in same cell
+  [ok] no double-spend: poor commit rejected
+  [ok] enemy attacks obstructing wall
+  [ok] enemy approaches crystal (rock detour)
+  [ok] combat kills grunts
+  [ok] wave clear -> PREP wave 2
+  [ok] three-wave win: WIN state + flow ended + overlay
+  [ok] no harvest from paused world
+  [ok] rover death ends attempt
+  [ok] crystal death ends attempt
+ok  boot: full composition present
+ok  harvest: cargo 6->7, deposit 5->4
+ok  build wall: placed, spent 2
+ok  no duplicate placement in same cell
+ok  no double-spend: poor commit rejected
+ok  enemy attacks obstructing wall
+ok  enemy approaches crystal (rock detour)
+ok  combat kills grunts
+ok  wave clear -> PREP wave 2
+ok  three-wave win: WIN state + flow ended + overlay
+ok  no harvest from paused world
+ok  rover death ends attempt
+ok  crystal death ends attempt
+== M2 probe: 13 ok, 0 fail ==

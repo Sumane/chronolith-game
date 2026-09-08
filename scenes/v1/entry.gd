@@ -1,28 +1,221 @@
 extends Node3D
-## M1 composition root: arena + combat + player rig + pause overlay.
-## Pause = tree pause + distinct input context: while paused only the pause
-## gate (PROCESS_MODE_ALWAYS) reads input; the rig reads none.
+## M2 composition root: arena + combat + rig + waves + build + flow + HUD.
+## Wallet (scrap cargo) lives here for M2; a proper Economy owner comes later.
 
+const START_CARGO := 6
+
+var cargo := START_CARGO
 var rig: PlayerRig
 var combat: Combat
+var arena
+var flow: GameFlow
+var director: WaveDirector
+var build: BuildService
+var hud: HudLayer
 var _overlay: CanvasLayer
+var _end_overlay: CanvasLayer
+var _end_label: Label
+var _pause_gate: PauseGate
+var _banner_t := 0.0
+var _banner := ""
+var _hud_t := 0.0
 
 func _ready() -> void:
-	var arena_res: PackedScene = ResourceLoader.load("res://scenes/v1/arena.tscn")
-	add_child(arena_res.instantiate())
+	InputSetup.setup()
+	_register_actions()
+	arena = (ResourceLoader.load("res://scenes/v1/arena.tscn") as PackedScene).instantiate()
+	add_child(arena)
+	flow = GameFlow.new()
+	flow.name = "Flow"
+	add_child(flow)
 	combat = Combat.new()
 	combat.name = "Combat"
 	add_child(combat)
-	var rig_res: PackedScene = ResourceLoader.load("res://player/player_rig.tscn")
-	rig = rig_res.instantiate() as PlayerRig
+	rig = (ResourceLoader.load("res://player/player_rig.tscn") as PackedScene).instantiate()
 	rig.name = "PlayerRig"
 	add_child(rig)
-	rig.fired.connect(_on_fired)
+	director = WaveDirector.new()
+	director.name = "WaveDirector"
+	director.arena = arena
+	director.crystal = arena.crystal
+	director.rover = rig.get_node("Rover")
+	add_child(director)
+	build = BuildService.new()
+	build.name = "BuildService"
+	build.arena = arena
+	build.wallet = self
+	build.combat = combat
+	build.aim_source = rig
+	add_child(build)
+	hud = (ResourceLoader.load("res://ui/hud.tscn") as PackedScene).instantiate() as HudLayer
+	hud.name = "HUD"
+	add_child(hud)
 	_build_pause_overlay()
-	print("M1_ENTRY_READY")
+	_build_end_overlay()
+	_wire()
+	_refresh_hud()
+	print("M2_ENTRY_READY")
+
+func _wire() -> void:
+	rig.fired.connect(_on_fired)
+	rig.pause_toggled.connect(_on_pause_toggled)
+	rig.hp_changed.connect(_on_rover_hp)
+	rig.harvest_done.connect(_on_harvest)
+	rig.repair_done.connect(_on_repair)
+	arena.crystal.damaged.connect(func(hp: int) -> void: _refresh_hud())
+	arena.crystal.destroyed_signal.connect(func() -> void: flow.on_crystal_lost())
+	director.wave_started.connect(_on_wave_started)
+	director.wave_cleared.connect(_on_wave_cleared)
+	director.attempt_won.connect(func() -> void: flow.on_won())
+	flow.ended.connect(_on_ended)
+	build.build_placed.connect(func(_b: Node, _c: Vector2i) -> void:
+		_refresh_hud()
+		_set_banner("PLACED " + build.last_type().to_upper() + " (repair: E near it)")
+	)
+
+# ------------------------------------------------------------- wallet --------
+
+func spend(n: int) -> bool:
+	if cargo < n:
+		return false
+	cargo -= n
+	_refresh_hud()
+	return true
+
+func gain(n: int) -> void:
+	cargo += n
+	_refresh_hud()
+
+func spendable(n: int) -> bool:
+	return cargo >= n
+
+# ------------------------------------------------------------- input ---------
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not flow.running:
+		return
+	if event.is_action_pressed("build_wall"):
+		_start_build("wall")
+	elif event.is_action_pressed("build_turret"):
+		_start_build("turret")
+	elif event.is_action_pressed("cancel_build"):
+		build.cancel()
+		rig.build_locked = false
+	elif event.is_action_pressed("early_start"):
+		director.early_start()
+	elif event.is_action_pressed("restart_attempt"):
+		get_tree().reload_current_scene()
+	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and build.active:
+		var res: Dictionary = build.commit()
+		if not res.get("ok", false):
+			_set_banner("CANNOT PLACE: " + str(res.get("reason", "")))
+	elif event.is_action_pressed("pause_toggle") and build.active:
+		build.cancel()
+		rig.build_locked = false
+
+func _start_build(type: String) -> void:
+	build.start_build(type)
+	rig.build_locked = true
+	_set_banner("PLACING " + type.to_upper() + " (LMB place / X or Esc cancel) — " + str(BuildService.COSTS[type]) + " scrap")
+
+func _register_actions() -> void:
+	# InputSetup.setup() already provides move_*, fire (Space/LMB), interact (E),
+	# pause_toggle (Esc), cancel_build (X/RMB). v1-specific additions:
+	_add_key("restart_attempt", KEY_R)
+	_add_key("build_wall", KEY_1)
+	_add_key("build_turret", KEY_2)
+	_add_key("early_start", KEY_N)
+
+func _add_key(action: String, keycode: Key) -> void:
+	if InputMap.has_action(action):
+		return
+	InputMap.add_action(action)
+	var k := InputEventKey.new()
+	k.keycode = keycode
+	InputMap.action_add_event(action, k)
+
+# ------------------------------------------------------------- callbacks -----
 
 func _on_fired(from: Vector3, to: Vector3) -> void:
 	combat.fire(from, to, [rig.rover_rid()])
+
+func _on_rover_hp(hp: int) -> void:
+	_refresh_hud()
+	if hp <= 0 and flow.running:
+		flow.on_rover_lost()
+
+func _on_harvest(d: Node) -> void:
+	if d is Deposit and d.take() > 0:
+		gain(1)
+		_set_banner("+1 SCRAP (hold E to keep harvesting)")
+
+func _on_repair(b: Node) -> void:
+	if b is BuildingBase and cargo >= 1 and b.hp < b.max_hp:
+		spend(1)
+		b.repair(10)
+		_set_banner("REPAIRED +10 (1 scrap)")
+
+func _on_wave_started(wave: int, direction: String) -> void:
+	_set_banner("WAVE %d INBOUND FROM THE %s — HOLD THE CRYSTAL" % [wave, direction])
+
+func _on_wave_cleared(wave: int) -> void:
+	_set_banner("WAVE %d CLEARED — PREP FOR WAVE %d" % [wave, wave + 1])
+
+func _on_ended(result: String) -> void:
+	get_tree().paused = true
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	_pause_gate.disabled = true
+	if result == "win":
+		_end_label.text = "PROTOTYPE RESULT: THREE-WAVE WIN\n(R — new attempt)"
+	else:
+		var reason := "the crystal was destroyed" if result == "lost_crystal" else "the rover was destroyed"
+		_end_label.text = "ATTEMPT LOST — " + reason + "\n(R — new attempt)"
+	_end_overlay.visible = true
+
+func _on_pause_toggled(paused: bool) -> void:
+	_overlay.visible = paused
+
+# ------------------------------------------------------------- HUD -----------
+
+func _process(delta: float) -> void:
+	if _banner_t > 0.0:
+		_banner_t -= delta
+		if _banner_t <= 0.0:
+			hud.set_banner("")
+	_hud_t -= delta
+	if _hud_t <= 0.0:
+		_hud_t = 0.15
+		_refresh_hud()
+
+func _refresh_hud() -> void:
+	if hud == null:
+		return
+	hud.set_scrap(cargo, BuildService.COSTS["wall"], BuildService.COSTS["turret"])
+	var state := "PREP"
+	var info := "%ds (N early start)" % int(ceilf(director.prep_left))
+	if director.state == WaveDirector.State.ASSAULT:
+		state = "ASSAULT"
+		info = "ENEMIES: %d" % director.alive
+	elif director.state == WaveDirector.State.WIN:
+		state = "WIN"
+		info = ""
+	if not flow.running:
+		state = "ENDED"
+		info = flow.last_result
+	hud.set_wave(state, director.wave, WaveDirector.WAVE_SIZES.size(), info)
+	hud.set_rover(rig.hp, rig.max_hp)
+	hud.set_crystal(arena.crystal.integrity, arena.crystal.max_integrity)
+	if build.active:
+		hud.set_hint("1 WALL  2 TURRET  LMB PLACE  X/Esc CANCEL  E HARVEST/REPAIR")
+	else:
+		hud.set_hint("WASD drive · mouse aim · LMB fire · E harvest/repair · N early start · Esc pause")
+
+func _set_banner(text: String) -> void:
+	_banner = text
+	_banner_t = 3.0
+	hud.set_banner(_banner)
+
+# ------------------------------------------------------------- overlays ------
 
 func _build_pause_overlay() -> void:
 	_overlay = CanvasLayer.new()
@@ -52,18 +245,50 @@ func _build_pause_overlay() -> void:
 	var gate := PauseGate.new()
 	gate.name = "PauseGate"
 	gate.rig_ref = rig
+	_pause_gate = gate
 	add_child(gate)
-	rig.pause_toggled.connect(_on_pause_toggled)
 
-func _on_pause_toggled(paused: bool) -> void:
-	_overlay.visible = paused
+func _build_end_overlay() -> void:
+	_end_overlay = CanvasLayer.new()
+	_end_overlay.process_mode = Node.PROCESS_MODE_ALWAYS
+	_end_overlay.layer = 10
+	var dim := ColorRect.new()
+	dim.color = Color(0.02, 0.01, 0.05, 0.8)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_end_label = Label.new()
+	_end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_end_label.add_theme_font_size_override("font_size", 30)
+	_end_label.text = ""
+	center.add_child(_end_label)
+	dim.add_child(center)
+	_end_overlay.add_child(dim)
+	_end_overlay.visible = false
+	add_child(_end_overlay)
+	var gate := RestartGate.new()
+	gate.restart = _restart_attempt
+	_end_overlay.add_child(gate)
+
+func _restart_attempt() -> void:
+	get_tree().paused = false
+	get_tree().reload_current_scene()
 
 class PauseGate:
 	extends Node
 	var rig_ref: Node
+	var disabled := false
 	func _unhandled_input(event: InputEvent) -> void:
-		if not get_tree().paused or not is_instance_valid(rig_ref):
+		if disabled or not get_tree().paused or not is_instance_valid(rig_ref):
 			return
 		if event.is_action_pressed("pause_toggle") or \
 			(event is InputEventJoypadButton and event.button_index == JOY_BUTTON_START and event.pressed):
 			rig_ref._toggle_pause()
+
+class RestartGate:
+	extends Node
+	var restart: Callable
+	func _unhandled_input(event: InputEvent) -> void:
+		if event.is_action_pressed("restart_attempt") or \
+			(event is InputEventJoypadButton and event.button_index == JOY_BUTTON_START and event.pressed):
+			restart.call()

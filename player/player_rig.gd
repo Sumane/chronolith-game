@@ -31,6 +31,18 @@ var _aim_pos := Vector3.ZERO
 var _aim_valid := false
 var _dbg_move := Vector2.ZERO
 var _dbg_t := 0.0
+# M2 state
+var hp := 100
+var max_hp := 100
+var can_fire := true
+var build_locked := false
+var _dbg_interact := 0.0
+var _channel := 0.0
+var _channel_target: Node = null
+
+signal hp_changed(hp: int)
+signal harvest_done(deposit: Node)
+signal repair_done(building: Node)
 
 func _ready() -> void:
 	_build_rover()
@@ -43,7 +55,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		_orbit(event.relative.x, event.relative.y)
-	elif event.is_action_pressed("pause_toggle"):
+	elif event.is_action_pressed("pause_toggle") and not build_locked:
 		_toggle_pause()
 
 func _physics_process(delta: float) -> void:
@@ -60,7 +72,10 @@ func _physics_process(delta: float) -> void:
 	_update_camera(delta)
 	_drive(delta, move)
 	_update_aim()
-	if _fire_pressed() and _fire_cd <= 0.0 and _aim_valid:
+	_update_interact(delta)
+	if _dbg_interact > 0.0:
+		_dbg_interact -= delta
+	if _fire_pressed() and can_fire and _fire_cd <= 0.0 and _aim_valid:
 		_fire_cd = FIRE_CD
 		fired.emit(_muzzle.global_position, _aim_pos)
 
@@ -147,7 +162,57 @@ func _toggle_pause() -> void:
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	pause_toggled.emit(get_tree().paused)
 
+# ------------------------------------------------------------- M2 contracts --
+
+func damage(n: int) -> void:
+	if hp <= 0:
+		return
+	hp = maxi(0, hp - n)
+	hp_changed.emit(hp)
+
+func aim_point() -> Vector3:
+	return _aim_pos
+
+func aim_valid() -> bool:
+	return _aim_valid
+
+func _update_interact(delta: float) -> void:
+	var want: Node = null
+	if Input.is_action_pressed("interact") or _dbg_interact > 0.0:
+		var p := _rover.global_position
+		for d in get_tree().get_nodes_in_group("deposit"):
+			if d is Node3D and p.distance_to(d.global_position) < 2.6:
+				want = d
+				break
+		if want == null:
+			for b in get_tree().get_nodes_in_group("building"):
+				if b is BuildingBase and p.distance_to(b.global_position) < 2.6 and b.hp < b.max_hp:
+					want = b
+					break
+	if want != _channel_target:
+		_channel_target = want
+		_channel = 0.0
+	if want == null:
+		return
+	_channel += delta
+	if want is Deposit and _channel >= 0.5:
+		_channel = 0.0
+		harvest_done.emit(want)
+	elif want is BuildingBase and _channel >= 0.4:
+		_channel = 0.0
+		repair_done.emit(want)
+
 # debug / test hooks (typed calls)
+func debug_set_aim(p: Vector3) -> void:
+	_aim_pos = p
+	_aim_valid = true
+
+func debug_set_pos(p: Vector3) -> void:
+	_rover.global_position = p
+
+func debug_interact(seconds: float) -> void:
+	_dbg_interact = seconds
+
 func debug_drive(dirv: Vector2, seconds: float) -> void:
 	_dbg_move = dirv.limit_length(1.0)
 	_dbg_t = seconds

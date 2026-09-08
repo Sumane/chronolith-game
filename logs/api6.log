@@ -1,0 +1,83 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+NODE_W3D=false
+MC=ARRAY_VERTEX
+MC=ARRAY_NORMAL
+MC=ARRAY_TANGENT
+MC=ARRAY_COLOR
+MC=ARRAY_TEX_UV
+MC=ARRAY_TEX_UV2
+MC=ARRAY_CUSTOM0
+MC=ARRAY_CUSTOM1
+MC=ARRAY_CUSTOM2
+MC=ARRAY_CUSTOM3
+MC=ARRAY_BONES
+MC=ARRAY_WEIGHTS
+MC=ARRAY_INDEX
+MC=ARRAY_MAX
+MC=ARRAY_CUSTOM_RGBA8_UNORM
+MC=ARRAY_CUSTOM_RGBA8_SNORM
+MC=ARRAY_CUSTOM_RG_HALF
+MC=ARRAY_CUSTOM_RGBA_HALF
+MC=ARRAY_CUSTOM_R_FLOAT
+MC=ARRAY_CUSTOM_RG_FLOAT
+MC=ARRAY_CUSTOM_RGB_FLOAT
+MC=ARRAY_CUSTOM_RGBA_FLOAT
+MC=ARRAY_CUSTOM_MAX
+MC=ARRAY_FORMAT_VERTEX
+MC=ARRAY_FORMAT_NORMAL
+MC=ARRAY_FORMAT_TANGENT
+MC=ARRAY_FORMAT_COLOR
+MC=ARRAY_FORMAT_TEX_UV
+MC=ARRAY_FORMAT_TEX_UV2
+MC=ARRAY_FORMAT_CUSTOM0
+MC=ARRAY_FORMAT_CUSTOM1
+MC=ARRAY_FORMAT_CUSTOM2
+MC=ARRAY_FORMAT_CUSTOM3
+MC=ARRAY_FORMAT_BONES
+MC=ARRAY_FORMAT_WEIGHTS
+MC=ARRAY_FORMAT_INDEX
+MC=ARRAY_FORMAT_BLEND_SHAPE_MASK
+MC=ARRAY_FORMAT_CUSTOM_BASE
+MC=ARRAY_FORMAT_CUSTOM_BITS
+MC=ARRAY_FORMAT_CUSTOM0_SHIFT
+MC=ARRAY_FORMAT_CUSTOM1_SHIFT
+MC=ARRAY_FORMAT_CUSTOM2_SHIFT
+MC=ARRAY_FORMAT_CUSTOM3_SHIFT
+MC=ARRAY_FORMAT_CUSTOM_MASK
+MC=ARRAY_COMPRESS_FLAGS_BASE
+MC=ARRAY_FLAG_USE_2D_VERTICES
+MC=ARRAY_FLAG_USE_DYNAMIC_UPDATE
+MC=ARRAY_FLAG_USE_8_BONE_WEIGHTS
+MC=ARRAY_FLAG_USES_EMPTY_VERTEX_ARRAY
+MC=ARRAY_FLAG_COMPRESS_ATTRIBUTES
+AM=add_surface_from_arraysargs=[{ "name": "primitive", "class_name": &"Mesh.PrimitiveType", "type": 2, "hint": 0, "hint_string": "", "usage": 65542 }, { "name": "arrays", "class_name": &"", "type": 28, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "blend_shapes", "class_name": &"", "type": 28, "hint": 31, "hint_string": "Array", "usage": 6 }, { "name": "lods", "class_name": &"", "type": 27, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "flags", "class_name": &"Mesh.ArrayFormat", "type": 2, "hint": 0, "hint_string": "", "usage": 518 }]
+AM=clear_surfacesargs=[]
+AM=surface_removeargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_update_vertex_regionargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "offset", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "data", "class_name": &"", "type": 29, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_update_attribute_regionargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "offset", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "data", "class_name": &"", "type": 29, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_update_skin_regionargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "offset", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "data", "class_name": &"", "type": 29, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_get_array_lenargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_get_array_index_lenargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_get_formatargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_get_primitive_typeargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_find_by_nameargs=[{ "name": "name", "class_name": &"", "type": 4, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_set_nameargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "name", "class_name": &"", "type": 4, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_get_nameargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=_set_surfacesargs=[{ "name": "surfaces", "class_name": &"", "type": 28, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=_get_surfacesargs=[]
+AM=_get_surface_countargs=[]
+AM=_surface_get_array_lenargs=[{ "name": "index", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=_surface_get_array_index_lenargs=[{ "name": "index", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=_surface_get_arraysargs=[{ "name": "index", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=_surface_get_blend_shape_arraysargs=[{ "name": "index", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=_surface_get_lodsargs=[{ "name": "index", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=_surface_get_formatargs=[{ "name": "index", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=_surface_get_primitive_typeargs=[{ "name": "index", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=_surface_set_materialargs=[{ "name": "index", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "material", "class_name": &"Material", "type": 24, "hint": 17, "hint_string": "Material", "usage": 6 }]
+AM=_surface_get_materialargs=[{ "name": "index", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=get_surface_countargs=[]
+AM=surface_get_arraysargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_get_blend_shape_arraysargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]
+AM=surface_set_materialargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }, { "name": "material", "class_name": &"Material", "type": 24, "hint": 17, "hint_string": "Material", "usage": 6 }]
+AM=surface_get_materialargs=[{ "name": "surf_idx", "class_name": &"", "type": 2, "hint": 0, "hint_string": "", "usage": 6 }]

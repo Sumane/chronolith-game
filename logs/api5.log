@@ -1,0 +1,8 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+SCRIPT ERROR: Parse Error: Invalid index type "String" for a base of type "String".
+          at: GDScript::reload (res://logs/apicheck5.gd:5)
+SCRIPT ERROR: Parse Error: No constructor of "String" matches the signature "String(Dictionary)".
+          at: GDScript::reload (res://logs/apicheck5.gd:9)
+ERROR: Failed to load script "res://logs/apicheck5.gd" with error "Parse error".
+   at: load (modules/gdscript/gdscript_resource_format.cpp:46)

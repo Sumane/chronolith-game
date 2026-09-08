@@ -15,6 +15,11 @@ const ROCKS: Array = [
 const BLOCKER_POS := Vector3(0.0, 0.0, -2.0)  # on the line spawn -> Target1
 const BLOCKER_R := 1.6
 
+var crystal: ChronolithCrystal
+var rock_list: Array = []
+
+const DEPOSIT_POS := [Vector2(6.0, 4.0), Vector2(-7.0, 7.0), Vector2(11.0, -6.0), Vector2(-12.0, -3.0), Vector2(3.0, 13.0)]
+
 func height_at(x: float, z: float) -> float:
 	var h := 0.7 * sin(x * 0.22) * cos(z * 0.19) \
 		+ 0.45 * sin(x * 0.09 + 1.7) * sin(z * 0.11 + 0.4) \
@@ -30,7 +35,17 @@ func _ready() -> void:
 	for r in ROCKS:
 		_rock(Vector3(float(r[0]), height_at(float(r[0]), float(r[1])), float(r[1])), float(r[2]))
 	_rock(BLOCKER_POS, BLOCKER_R)
-	_build_crystal()
+	crystal = ChronolithCrystal.new()
+	crystal.name = "Chronolith"
+	add_child(crystal)
+	var dep_group := Node3D.new()
+	dep_group.name = "Deposits"
+	for i in DEPOSIT_POS.size():
+		var d := Deposit.new()
+		d.name = "Deposit%d" % (i + 1)
+		d.position = Vector3(DEPOSIT_POS[i].x, height_at(DEPOSIT_POS[i].x, DEPOSIT_POS[i].y), DEPOSIT_POS[i].y)
+		dep_group.add_child(d)
+	add_child(dep_group)
 	var t1 := TargetDummy.new()
 	t1.name = "Target1"
 	t1.position = Vector3(0.0, height_at(0.0, -12.0), -12.0)
@@ -125,6 +140,7 @@ func _build_terrain() -> void:
 	add_child(body)
 
 func _rock(pos: Vector3, r: float) -> void:
+	rock_list.append({"pos": pos, "r": r})
 	var body := StaticBody3D.new()
 	var col := CollisionShape3D.new()
 	var s := SphereShape3D.new()
@@ -143,43 +159,3 @@ func _rock(pos: Vector3, r: float) -> void:
 	body.add_child(m)
 	body.position = pos
 	add_child(body)
-
-func _build_crystal() -> void:
-	var g := Node3D.new()
-	g.name = "Chronolith"
-	var ped := CylinderMesh.new()
-	ped.top_radius = 1.4
-	ped.bottom_radius = 1.7
-	ped.height = 0.5
-	var ped_mi := MeshInstance3D.new()
-	ped_mi.mesh = ped
-	ped_mi.material_override = _mat(Color(0.35, 0.3, 0.28))
-	ped_mi.position = Vector3(0, 0.25, 0)
-	g.add_child(ped_mi)
-	var cm := PrismMesh.new()
-	cm.size = Vector3(1.5, 3.0, 1.5)
-	var crystal := MeshInstance3D.new()
-	crystal.mesh = cm
-	var cmat := StandardMaterial3D.new()
-	cmat.albedo_color = Color(0.2, 0.85, 0.75)
-	cmat.emission_enabled = true
-	cmat.emission = Color(0.2, 0.95, 0.85)
-	cmat.emission_energy_multiplier = 1.5
-	crystal.material_override = cmat
-	crystal.position = Vector3(0, 2.1, 0)
-	g.add_child(crystal)
-	var glow := OmniLight3D.new()
-	glow.position = Vector3(0, 2.4, 0)
-	glow.light_color = Color(0.3, 0.95, 0.85)
-	glow.light_energy = 2.5
-	glow.omni_range = 10.0
-	g.add_child(glow)
-	var body := StaticBody3D.new()
-	var col := CollisionShape3D.new()
-	var s := SphereShape3D.new()
-	s.radius = 1.8
-	col.shape = s
-	col.position = Vector3(0, 1.8, 0)
-	body.add_child(col)
-	g.add_child(body)
-	add_child(g)

@@ -1,0 +1,12 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+
+ERROR: Condition "p_arrays.size() != ARRAY_MAX" is true.
+   at: add_surface_from_arrays (scene/resources/mesh.cpp:1822)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://logs/apicheck8.gd:7)
+PAIRS_SURF=0
+ERROR: Condition "p_arrays.size() != ARRAY_MAX" is true.
+   at: add_surface_from_arrays (scene/resources/mesh.cpp:1822)
+   GDScript backtrace (most recent call first):
+       [0] _init (res://logs/apicheck8.gd:10)
+DICTSURF=0

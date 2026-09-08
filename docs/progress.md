@@ -36,29 +36,68 @@ cd /home/marc/AI/Chronolith-Game
 godot --path . res://scenes/v1/entry.tscn
 ```
 WASD drive, mouse orbit/aim (cursor hidden, crosshair ring), LMB fire,
-Esc pause. Gamepad works too.
+Esc pause. M2: E harvest/repair, 1 wall / 2 turret (LMB place, X/Esc cancel),
+N early start, R new attempt after loss. Gamepad works too.
+
+## M2 — playable three-wave defence (DONE, committed)
+
+Full loop in `res://scenes/v1/entry.tscn`:
+- **Harvest**: 5 scrap deposits (hold E, 0.5 s per scrap, 5 each).
+- **Build**: 1 wall (2 scrap, 60 hp) / 2 turret (4 scrap, 40 hp, 8 m range,
+  0.8 s cd, 10 dmg). Transparent ghost preview snapped to 1 m grid
+  (green/red), occupied-footprint + rock + flatness validation, atomic
+  spend→place, repair with E (1 scrap → +10 hp).
+- **Enemy**: Grunt (20 hp, 3.2 m/s) seeks crystal, melees it (6/hit); aggro
+  to rover within 6 m (5/hit); attacks obstructing walls (4/hit); steers
+  around rocks with forward-probe + bias flip; stuck-breaker keeps it acting
+  (an enclosed base never freezes enemies).
+- **Waves**: 3 prep/assault rounds, sizes 3/4/5, 20 s prep, N = early start,
+  staggered edge spawns, direction banner. Wave clear → next prep; wave 3
+  clear → attempt won ("PROTOTYPE RESULT" overlay, not campaign completion).
+- **Attempt**: rover 100 hp / crystal 50 integrity; either death → ATTEMPT
+  LOST overlay; R (or Start) reloads a clean new attempt.
+- HUD blockout: scrap + costs, wave state, rover/crystal HP, banners, hints.
+
+Probe: `res://tests/v1/m2_probe.tscn` → **13/13, exit 0** (harvest; build;
+no duplicate placement; no double-spend when poor; enemy attacks obstructing
+wall; enemy approaches crystal with rock detour; combat kill; wave clear →
+wave 2; three-wave win + overlay; no harvest while paused; rover death and
+crystal death end the attempt). M1 probe **8/8**, 2D suite **71/71** — both
+re-run after M2.
+
+Input: v1 entry calls `InputSetup.setup()` (2D runtime InputMap) — fix for a
+real bug where v1 never registered any input actions. v1 adds
+restart_attempt (R), build_wall (1), build_turret (2), early_start (N);
+cancel_build (X/RMB) and fire (Space/LMB), interact (E) come from InputSetup.
 
 ## Known limitations
 
-- No enemies/waves/research/building yet (M2+).
-- Camera feel + driving weight unreviewed — expect tuning.
-- v1 economy numbers unvalidated; `data/*.json` values are v0 tuning only.
-- 4.7.1 API notes for future work: raycasts =
+- Navigation = steering + real collision (forward probe + side bias +
+  stuck-breaker). A grid navmesh is a later upgrade, not a blocker.
+- Wall/turret HP and all economy numbers are unvalidated guesses.
+- M1 feel review (camera/orbit/weight) still pending from Marc; M2 tuning
+  knobs: `Grunt` SPEED/ATTACK, `WaveDirector` WAVE_SIZES/PREP_TIME,
+  `Turret` RANGE/COOLDOWN, costs in `BuildService.COSTS`.
+- 4.7.1 API notes: raycasts =
   `PhysicsRayQueryParameters3D.create(from,to,mask,exclude)` +
   `space.intersect_ray(query)`; mesh arrays = `ARRAY_MAX`-sized slot array
-  (`Mesh.ARRAY_TEX_UV`, not `ARRAY_UV`); `Node` has no `get_world_3d()`.
+  (`Mesh.ARRAY_TEX_UV`, not `ARRAY_UV`); `Node` has no `get_world_3d()`;
+  `InputMap.action_add_keyevent` takes an `InputEventKey`, not a Key;
+  a `class_name` shadows 2D preload-const names (2D `Enemy` is a preload
+  const in waves_controller — 3D grunt is `Grunt`); `:=` cannot infer from
+  Variant members (untyped `Node` refs / Dictionary indexes).
 
-## Exact next task (M2, from chronolith-agent-tasks.md)
+## Exact next task (M3, from chronolith-agent-tasks.md)
 
-First enemy + threat loop in the v1 entry: enemy that navigates the 3D
-terrain toward the rover/base, combat round-trips with real damage and death,
-spawn/wave budget hook, kill→reward flow — all blockout visuals, headless
-probe for the loop, then back to Marc for feel.
+Engrams: full planning pause, engram spend/preview, persistence +
+ProfileStore (schema-versioned saves).
 
 ## Changed files (this milestone)
 
-- New: `player/player_rig.{gd,tscn}`, `combat/combat.gd`,
-  `combat/target_dummy.gd`, `world/arena.gd`, `scenes/v1/{entry.tscn,
-  entry.gd,arena.tscn}`, `tests/v1/m1_probe.{gd,tscn}`,
-  `docs/asset-conventions.md`
-- `docs/progress.md` (this file)
+- New: `world/deposit.gd`, `chronolith/crystal.gd`, `building/{
+  building_base,wall,turret,build_service}.gd`, `combat/enemy.gd`,
+  `waves/wave_director.gd`, `game/flow.gd`, `ui/hud.{gd,tscn}`,
+  `tests/v1/m2_probe.{gd,tscn}`
+- Changed: `world/arena.gd` (crystal node, deposits, rock_list),
+  `player/player_rig.gd` (hp, interact channel, can_fire, debug hooks),
+  `scenes/v1/entry.gd` (full M2 wiring, overlays, wallet), `docs/progress.md`
