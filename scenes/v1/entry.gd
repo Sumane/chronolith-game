@@ -57,6 +57,9 @@ var _overlay: CanvasLayer
 var _end_overlay: CanvasLayer
 var _end_label: Label
 var _pause_gate: PauseGate
+var _research_gate: ResearchGate = null
+var _restart_gate: RestartGate = null
+var _root_gates: Array = []
 var _banner_t := 0.0
 var _banner := ""
 var _hud_t := 0.0
@@ -100,7 +103,10 @@ func _ready() -> void:
 	beat_gate.name = "BeatGate"
 	beat_gate.process_mode = Node.PROCESS_MODE_ALWAYS
 	beat_gate.closed.connect(_close_beat)
-	add_child(beat_gate)
+	# Gates live under the root: while the tree is paused, this entry's
+	# PAUSABLE subtree is input-dead, so any gate inside it could never close
+	# what it guards. The root always processes input.
+	_add_root_gate(beat_gate)
 	director.crystal = arena.crystal
 	director.rover = rig.get_node("Rover")
 	add_child(director)
@@ -187,8 +193,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		rig.build_locked = false
 	elif event.is_action_pressed("early_start"):
 		director.early_start()
-	elif event.is_action_pressed("research_toggle"):
-		_open_research()
+	# research_toggle is owned by the root-level ResearchGate (it must stay
+	# live while the tree is paused)
 	elif event.is_action_pressed("ram"):
 		if rig.ram():
 			_set_banner("RAM! (-%d rover hp)" % PlayerRig.RAM_COST)
@@ -646,8 +652,16 @@ func _build_pause_overlay() -> void:
 	var gate := PauseGate.new()
 	gate.name = "PauseGate"
 	gate.rig_ref = rig
+	gate.beat_ref = beat_gate
+	gate.process_mode = Node.PROCESS_MODE_ALWAYS
 	_pause_gate = gate
-	add_child(gate)
+	_add_root_gate(gate)
+	var rgate := ResearchGate.new()
+	rgate.name = "ResearchGate"
+	rgate.entry_ref = self
+	rgate.process_mode = Node.PROCESS_MODE_ALWAYS
+	_research_gate = rgate
+	_add_root_gate(rgate)
 
 func _build_end_overlay() -> void:
 	_end_overlay = CanvasLayer.new()
@@ -669,22 +683,67 @@ func _build_end_overlay() -> void:
 	add_child(_end_overlay)
 	var gate := RestartGate.new()
 	gate.restart = _restart_attempt
-	_end_overlay.add_child(gate)
+	gate.process_mode = Node.PROCESS_MODE_ALWAYS
+	_restart_gate = gate
+	_add_root_gate(gate)
 
 func _restart_attempt() -> void:
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 
+## Root-level gates must be attached deferred: during scene setup the root is
+## busy adding its own children, so an immediate add_child is refused. The
+## lambda re-checks validity in case this entry is freed first.
+func _add_root_gate(g: Node) -> void:
+	_root_gates.append(g)
+	var root := get_tree().root
+	var attach := func() -> void:
+		if is_instance_valid(g) and is_instance_valid(root) and g.get_parent() == null:
+			root.add_child(g)
+	attach.call_deferred()
+
+func _exit_tree() -> void:
+	for g in _root_gates:
+		if is_instance_valid(g):
+			g.queue_free()
+	_root_gates.clear()
+
 class PauseGate:
 	extends Node
 	var rig_ref: Node
+	var beat_ref: Node = null
 	var disabled := false
 	func _unhandled_input(event: InputEvent) -> void:
-		if disabled or not get_tree().paused or not is_instance_valid(rig_ref):
+		# A story beat also pauses the tree; its gate owns the close key.
+		# While research is open (disabled), ResearchGate owns ESC too.
+		if is_instance_valid(beat_ref) and beat_ref.open:
+			return
+		if disabled or not is_instance_valid(rig_ref):
 			return
 		if event.is_action_pressed("pause_toggle") or \
 			(event is InputEventJoypadButton and event.button_index == JOY_BUTTON_START and event.pressed):
+			get_viewport().set_input_as_handled()
 			rig_ref._toggle_pause()
+
+class ResearchGate:
+	extends Node
+	## Owns the research screen's open/close keys. Lives under the root so it
+	## stays live while the tree is paused, and consumes the event so the
+	## (mid-event) unpausing cannot make the entry's subtree re-process it.
+	var entry_ref: Node
+	func _unhandled_input(event: InputEvent) -> void:
+		if not is_instance_valid(entry_ref):
+			return
+		var sc: Node = entry_ref.research_screen
+		if not is_instance_valid(sc):
+			return
+		if sc.visible_now:
+			if event.is_action_pressed("research_toggle") or event.is_action_pressed("pause_toggle"):
+				get_viewport().set_input_as_handled()
+				sc._close()
+		elif event.is_action_pressed("research_toggle"):
+			get_viewport().set_input_as_handled()
+			entry_ref._open_research()
 
 class RestartGate:
 	extends Node

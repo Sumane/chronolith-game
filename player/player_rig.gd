@@ -58,10 +58,10 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if ctx != Ctx.PLAY:
 		return
+	# pause_toggle is owned by the root-level PauseGate (it must stay live
+	# while this PAUSABLE subtree is input-dead)
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		_orbit(event.relative.x, event.relative.y)
-	elif event.is_action_pressed("pause_toggle") and not build_locked:
-		_toggle_pause()
 
 func _physics_process(delta: float) -> void:
 	if ctx != Ctx.PLAY:
@@ -160,13 +160,16 @@ func _update_aim() -> void:
 		_turret.look_at(_aim_pos, Vector3.UP)
 
 func _toggle_pause() -> void:
-	ctx = Ctx.PAUSE if ctx == Ctx.PLAY else Ctx.PLAY
-	get_tree().paused = ctx != Ctx.PLAY
-	if ctx == Ctx.PLAY:
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-	else:
+	_set_pause(not get_tree().paused)
+
+func _set_pause(p: bool) -> void:
+	ctx = Ctx.PAUSE if p else Ctx.PLAY
+	get_tree().paused = p
+	if p:
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-	pause_toggled.emit(get_tree().paused)
+	else:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	pause_toggled.emit(p)
 
 # ------------------------------------------------------------- M2 contracts --
 

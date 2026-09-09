@@ -549,3 +549,34 @@ spawning — a viable strategy is never destroyed by an uncapped field.
   destruction; M1 target dummies + the 2D-era blocker rock stay on the
   map as probe dependencies.
 - 2D save corrupt-guard still prints the pre-existing JSON error line.
+
+## M9 — input fix: every menu is closable (v1)
+
+Playtest reports: research could not be closed with G/Esc; the pause
+menu could not be closed with Esc (only R, and R was dead while paused);
+terrain hard to read; no way to remove buildings (last two follow on).
+
+Root cause: the entry sets `PROCESS_MODE_PAUSABLE` on its subtree (required
+so headless probes see the tree stop when paused). While `tree.paused`,
+the whole subtree is input-dead — even children set to `PROCESS_MODE_ALWAYS`
+do not receive `_unhandled_input`. Any gate inside the subtree could never
+close what it guarded. Secondary: mid-event state flips — a handler that
+unpauses mid-propagation makes the subtree live again and it re-processes
+the same event (double-toggle: gate unpauses, rig re-pauses).
+
+Fix: the four always-live gates (Beat, Pause, Research, Restart) are now
+attached to `get_tree().root` (deferred, so they survive scene setup),
+each owning its keys exclusively and calling `set_input_as_handled()` so
+the mid-event unpause cannot let the entry subtree re-process the same
+event. The rig no longer handles `pause_toggle` (PauseGate owns it and now
+toggles both ways); the entry no longer handles `research_toggle`
+(ResearchGate owns open+close). Gates detach via `queue_free()` in
+`_exit_tree` (synchronous `remove_child` fails during reload teardown).
+
+New `tests/v1/input_probe.tscn` (16 checks): research open/close via G and
+Esc with a no-self-close stability window; pause Esc-toggle stability x2;
+opening beat opens on first boot with its text and closes on any key;
+explicit beat close; end screen + root-level restart gate (ALWAYS, bound
+callable) after a 1-wave win; all root gates freed with the entry.
+
+Full regression green: m1-m8 142 + progression 10 + input 16 + 2D smoke 71.
