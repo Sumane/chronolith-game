@@ -81,6 +81,32 @@ func _mat(c: Color) -> StandardMaterial3D:
 	m.roughness = 1.0
 	return m
 
+func _terrain_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = _grid_texture()
+	m.roughness = 1.0
+	return m
+
+## The whole 40 m arena in one 640 px image (16 px per metre tile): base
+## Mars tone with deterministic speckle noise plus a bright line at every
+## tile edge, so the surface reads as 1 m square placeholder tiles and
+## distances are measurable.
+func _grid_texture() -> ImageTexture:
+	const RES := 640
+	const PER_M := 16
+	var img := Image.create(RES, RES, false, Image.FORMAT_RGB8)
+	var base := Color(0.45, 0.26, 0.17)
+	var line := Color(0.68, 0.47, 0.34)
+	for y in RES:
+		for x in RES:
+			var r := fmod(sin(float(x) * 127.1 + float(y) * 311.7) * 43758.5453, 1.0)
+			var v := 1.0 + (r - 0.5) * 0.22
+			var c := Color(base.r * v, base.g * v, base.b * v)
+			if x % PER_M == 0 or y % PER_M == 0:
+				c = line
+			img.set_pixel(x, y, c)
+	return ImageTexture.create_from_image(img)
+
 func _build_environment() -> void:
 	var world := WorldEnvironment.new()
 	var env := Environment.new()
@@ -95,9 +121,19 @@ func _build_environment() -> void:
 	env.sky = sky
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.6, 0.36, 0.25)
-	env.fog_density = 0.01
+	# dense enough that the 40 m arena edge softens into the horizon
+	env.fog_density = 0.03
 	world.environment = env
 	add_child(world)
+	# wide plain under the heightmap: looking over the arena edge meets a
+	# fog-shrouded Mars plain, not the void
+	var gp := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = Vector2(500.0, 500.0)
+	gp.mesh = plane
+	gp.material_override = _mat(Color(0.30, 0.17, 0.12))
+	gp.position.y = -2.5
+	add_child(gp)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-55.0, -30.0, 0.0)
 	sun.light_energy = 1.3
@@ -127,7 +163,9 @@ func _build_terrain() -> void:
 			var hx := height_at(x + 0.5, z) - height_at(x - 0.5, z)
 			var hz := height_at(x, z + 0.5) - height_at(x, z - 0.5)
 			nrm.append(Vector3(-hx, 1.0, -hz).normalized())
-			uvs.append(Vector2(ix, iz))
+			# 0..1 across the arena: one 640 px texture covers it 1:1,
+			# so tiling needs no texture repeat mode
+			uvs.append(Vector2(ix / float(n - 1), iz / float(n - 1)))
 	for iz in n - 1:
 		for ix in n - 1:
 			var a := iz * n + ix
@@ -142,7 +180,7 @@ func _build_terrain() -> void:
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
-	mi.material_override = _mat(Color(0.45, 0.26, 0.17))
+	mi.material_override = _terrain_material()
 	add_child(mi)
 	var body := StaticBody3D.new()
 	var col := CollisionShape3D.new()

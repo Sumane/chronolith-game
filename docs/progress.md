@@ -580,3 +580,22 @@ explicit beat close; end screen + root-level restart gate (ALWAYS, bound
 callable) after a 1-wave win; all root gates freed with the entry.
 
 Full regression green: m1-m8 142 + progression 10 + input 16 + 2D smoke 71.
+
+## M10 — terrain readability (v1)
+
+Playtest: "the terrain is difficult to see ... a horizon / some square
+placeholder tiles to make out the terrain."
+
+`world/arena.gd` changes:
+- Terrain albedo is now a generated 640 px grid texture (16 px per metre
+  tile = 1 m square placeholder tiles across the 40 m pad): base Mars tone
+  with deterministic speckle noise plus a bright line at every tile edge.
+  UVs rescaled 0..1 so the texture covers the arena 1:1 (no repeat-mode
+  dependency).
+- A 500 m dark plain sits 2.5 m under the heightmap, so looking over the
+  arena edge meets the fog instead of the void — a real horizon.
+- Fog density 0.01 -> 0.03 so the far arena edge softens into the plain.
+
+New `tests/v1/terrain_probe.tscn` (3 checks): grid texture on the terrain
+mesh, wide plain present, fog raised. Full regression green (158 v1 +
+this probe + 2D smoke 71).
