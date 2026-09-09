@@ -369,3 +369,34 @@ assaults scale ~15 s (wave 1) to ~90 s (wave 20); breather dips (waves
   contaminates the next boot's checkpoint.
 - `director.wave_plan` override must come after the `director` ref is
   acquired (m2 acquires it late — the override used to hit a Nil base).
+
+## M6c — recognisable campaign map (v1)
+
+**Scope**: the arena becomes a readable map — four rock cover clusters
+flanking the eight edge approaches, lane pinch rocks, and a five-deposit
+resource distance ladder (7 / 10 / 13 / 17 / 21 m from the crystal). Each
+deposit sits off the main lanes, most beside a cover cluster: harvesting is
+always a detour with a partial view of the approach that feeds it.
+
+**Changes**
+- `world/arena.gd` — `ROCKS` relayout: NE cluster + pinch (lanes E1/E3),
+  NW cluster (E2/E5), SW cluster (E6), SE cluster (E4/E7), four mid-ring
+  solos holding the central approach; blocker rock (0,-2) kept — it flanks
+  the north-centre lane and the m1 LOS test; M1 Target1-3 kept (probe
+  dependency, M7/M8 can re-home them). `DEPOSIT_POS` ladder: (6,4) (7.2 m),
+  (-7,7) (9.9), (11,-6) (12.5), (-14,10) (17.2), (15,15) (21.2).
+- `tests/v1/m6c_probe.{gd,tscn}` — NEW: **5/5** (ladder within 0.4 m, 18
+  colliders, 8 edges, grunts from N/NW/SE/SW each close 4+ m toward the
+  crystal in 90 frames, north-centre lane still occluded).
+
+**Validation** — full regression after the relayout: m1 8/8 (blocker LOS
+intact), m2 13/13, m3 13/13, m4 18/18, m5 13/13, m6 14/14, m6b 26/26 (full
+campaign navigation over the new rocks), m6c 5/5, progression 10/10, 2D
+smoke 71/71.
+
+**Gotchas**
+- Build exclusion: a cell center must stay >= r+0.9 from every rock. The
+  m2/m3 probes canonically build at world (10,10) — the SE cluster was
+  moved to wrap that pocket, not fill it. Map edits near probe build
+  points (m2 (10,10)/(13,13), m3 (10,10), m6 (5.5,3.5)/(3.5,5.5)) must be
+  checked against this rule.

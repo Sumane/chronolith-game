@@ -7,18 +7,33 @@ extends Node3D
 const GRID := 41
 const SIZE := 40.0
 
+# M6: recognisable map. Four cover clusters (two rocks each) flank the
+# eight edge approaches; single pinch rocks force lanes; the blocker rock
+# keeps the north-centre approach flanked. Cover pockets sit on the mid
+# ring (8-14 m) where turrets/walls hold two or three lanes.
 const ROCKS: Array = [
-	[-7.0, 2.0, 1.6], [-9.5, -4.0, 1.2], [6.5, 6.0, 1.4], [9.0, -2.0, 1.8],
-	[3.0, 9.5, 1.1], [-4.0, -9.0, 1.5], [12.0, 8.0, 1.3], [-12.0, 8.5, 1.7],
-	[5.0, -12.0, 1.2], [-8.0, 12.0, 1.4],
+	# NE cluster + lane pinch (lanes from E1/E3)
+	[8.0, -8.0, 1.5], [11.0, -5.0, 1.2], [14.0, -12.0, 1.6],
+	# NW cluster (lanes from E2/E5)
+	[-9.0, -7.0, 1.4], [-12.0, -10.0, 1.6], [-9.5, -4.0, 1.2],
+	# SW cluster (lane from E6)
+	[-8.0, 10.0, 1.5], [-12.0, 13.0, 1.3], [-5.0, 15.0, 1.2], [-12.0, 8.5, 1.7],
+	# SE cluster (lanes from E4/E7) — wraps the (10,10) build pocket,
+	# never inside its r+0.9 build exclusion
+	[6.5, 12.0, 1.4], [14.0, 10.0, 1.3], [12.0, 8.0, 1.3],
+	# mid-ring solos holding the central approach
+	[-7.0, 2.0, 1.6], [9.0, -2.0, 1.8], [3.0, 9.5, 1.1], [6.5, 6.0, 1.4],
 ]
-const BLOCKER_POS := Vector3(0.0, 0.0, -2.0)  # on the line spawn -> Target1
+const BLOCKER_POS := Vector3(0.0, 0.0, -2.0)  # keeps north-centre flanked (M1 LOS)
 const BLOCKER_R := 1.6
 
 var crystal: ChronolithCrystal
 var rock_list: Array = []
 
-const DEPOSIT_POS := [Vector2(6.0, 4.0), Vector2(-7.0, 7.0), Vector2(11.0, -6.0), Vector2(-12.0, -3.0), Vector2(3.0, 13.0)]
+# M6: resource distance ladder — 7 / 10 / 13 / 17 / 21 m from the crystal.
+# Each deposit sits off the main lanes, most near a cover cluster: harvesting
+# is always a detour with a partial view of the approach that feeds it.
+const DEPOSIT_POS := [Vector2(6.0, 4.0), Vector2(-7.0, 7.0), Vector2(11.0, -6.0), Vector2(-14.0, 10.0), Vector2(15.0, 15.0)]
 
 func height_at(x: float, z: float) -> float:
 	var h := 0.7 * sin(x * 0.22) * cos(z * 0.19) \
