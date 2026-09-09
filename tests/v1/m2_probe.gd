@@ -56,6 +56,7 @@ func _run() -> void:
 	combat = entry.get_node("Combat")
 	flow = entry.get_node("Flow")
 	director = entry.get_node("WaveDirector")
+	director.wave_plan = [3, 4, 5]  # prototype mode: campaign is 20 waves
 	build = entry.get_node("BuildService")
 	arena = entry.get_node("Arena")
 	crystal = arena.crystal

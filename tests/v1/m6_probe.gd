@@ -74,6 +74,7 @@ func _run() -> void:
 	arena = entry.get_node("Arena")
 	crystal = arena.crystal
 	combat = entry.get_node("Combat")
+	director.wave_plan = [3, 4, 5]  # prototype mode: campaign is 20 waves
 
 	# 1 catalog shape: 14 nodes, five lines, depth 45
 	var total := 0

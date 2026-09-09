@@ -56,6 +56,7 @@ func _ready() -> void:
 	director = WaveDirector.new()
 	director.name = "WaveDirector"
 	director.arena = arena
+	director.golem_event.connect(_on_golem_event)
 	director.crystal = arena.crystal
 	director.rover = rig.get_node("Rover")
 	add_child(director)
@@ -231,10 +232,10 @@ func _on_ended(result: String) -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	_pause_gate.disabled = true
 	if result == "win":
-		knowledge.grant_wave(attempt_id, WaveDirector.WAVE_SIZES.size())
+		knowledge.grant_wave(attempt_id, int(director.wave_plan.size()))
 	_save_profile()
 	if result == "win":
-		_end_label.text = "PROTOTYPE RESULT: THREE-WAVE WIN\n(R — new attempt)"
+		_end_label.text = "CAMPAIGN CLEAR: %d WAVEs\n(R — new attempt)" % [int(director.wave_plan.size())]
 	else:
 		var reason := "the crystal was destroyed" if result == "lost_crystal" else "the rover was destroyed"
 		_end_label.text = "ATTEMPT LOST — " + reason + "\n(R — new attempt)"
@@ -265,7 +266,7 @@ func _resume_checkpoint() -> void:
 		director.wave = _saved_wave
 		director.state = WaveDirector.State.PREP
 		director.prep_left = WaveDirector.PREP_TIME
-		_set_banner("CHECKPOINT RESTORED: WAVE %d OF 3" % _saved_wave)
+		_set_banner("CHECKPOINT RESTORED: WAVE %d OF %d" % [_saved_wave, int(director.wave_plan.size())])
 	else:
 		attempt_id = _new_attempt_id()
 
@@ -423,7 +424,7 @@ func _refresh_hud() -> void:
 	if not flow.running:
 		state = "ENDED"
 		info = flow.last_result
-	hud.set_wave(state, director.wave, WaveDirector.WAVE_SIZES.size(), info)
+	hud.set_wave(state, director.wave, int(director.wave_plan.size()), info)
 	hud.set_rover(rig.hp, rig.max_hp, "MECH" if rig.mech_mode else "ROVER")
 	hud.set_crystal(arena.crystal.integrity, arena.crystal.max_integrity)
 	if build.active:

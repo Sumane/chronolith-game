@@ -305,3 +305,67 @@ flipped to >= 45, earliest-win 5/9/13/17 + attempt-5 win unchanged), 2D smoke
   next boot: probes must WIN (flow stopped) before the save that seeds entry 2.
 - New `class_name` (TimeWarp, Turret) requires `--import` before the first run
   or dependent scripts fail to compile.
+
+## M6b — 20-wave campaign (v1)
+
+**Done (files only, NOT verified)**
+- `waves/wave_director.gd` — `WAVE_PLAN` (20): `[3,3,4,4,5,4,6,5,7,6,8,7,9,8,10,9,11,10,12,14]`
+  (145 grunts; breather dips every ~3 waves; wave 20 climax 14);
+  `WARDEN_WAVES {3,7,11,15,19,20}`, `GOLEM_WAVES {5,10,16,20}`; live
+  `wave_plan` var (probes override to the 3-wave prototype); `_spawn_golem`
+  + `golem_event` signal; WIN at `wave >= wave_plan.size()`.
+- `scenes/v1/entry.gd` — labels/HUD/grant now use `director.wave_plan.size()`;
+  director golem events -> armor-blocked banner.
+- m2/m4/m5/m6 probes: `director.wave_plan = [3,4,5]` on every entry that
+  expects the old 3-wave win (m3 never wins — no override needed).
+- `tests/v1/m6b_probe.{gd,tscn}` — NEW, not yet run: plan shape (20/145/
+  schedule), full 20-wave debug run (warden+golem observed on the right
+  waves, WIN only at 20, 20 engrams), prototype-mode win at 3.
+
+**Tomorrow: in order**
+1. `godot --headless --import` (no new class_names expected, but safe).
+2. Run `tests/v1/m6b_probe.tscn` (~60 s: 20 waves + 3 waves).
+3. Full regression (m1-m6, progression, 2D smoke) — the wave_plan overrides
+   are the risk area.
+4. Commit M6b; then M6c (map: corridors/cover/4 deposits), M6d (earliest-win
+   rerun on real campaign data), M6e (counter hints + input remapping),
+   M6 wrap (doc + commit).
+
+**Scope**: the campaign is now the full twenty waves. `WAVE_PLAN`
+`[3,3,4,4,5,4,6,5,7,6,8,7,9,8,10,9,11,10,12,14]` = 145 grunts with breather
+dips every ~3 waves; Warden on 3/7/11/15/19/20; Golem on 5/10/16/20;
+wave 20 is the 14-grunt + Warden + Golem climax. WIN fires at
+`wave >= wave_plan.size()`.
+
+**Changes**
+- `waves/wave_director.gd` — `WAVE_PLAN` (20) replaces `WAVE_SIZES` (3);
+  `wave_plan` is a live instance var (probes set it to the 3-wave
+  prototype); `GOLEM_WAVES` + `_spawn_golem` + `golem_event` signal;
+  `debug_instant_wave` spawns the golem too on golem waves.
+- `scenes/v1/entry.gd` — win label "CAMPAIGN CLEAR: N WAVES", checkpoint
+  banner "WAVE n OF N", HUD wave count, engram grant all read
+  `director.wave_plan.size()`; director golem events feed the armor-blocked
+  banner.
+- m2/m4/m5/m6 probes: `director.wave_plan = [3,4,5]` on every entry that
+  expects the old 3-wave win (m3 never wins — untouched).
+- `tests/v1/m6b_probe.{gd,tscn}` — NEW: **26/26**.
+
+**Validation** — m6b probe: plan shape (20 waves / 145 grunts / exact
+schedule); a full 20-wave debug run observes Warden live on 3/7/11/15/19 and
+Golem on 5/10/16 (wave 20 = both), no early win, 20 engrams earned, prototype
+`[3,4,5]` still wins at wave 3. Regression: m1 8/8, m2 13/13, m3 13/13,
+m4 18/18, m5 13/13, m6 14/14, progression 10/10, 2D smoke 71/71.
+
+**45-minute tuning** (feel is Marc's review): PREP_TIME 20 s between waves;
+assaults scale ~15 s (wave 1) to ~90 s (wave 20); breather dips (waves
+6/8/12/14/16/18) are the build windows. Knob to tighten: PREP_TIME -> 15.
+
+**Gotchas**
+- `for w in 20` in GDScript iterates 0..19 — campaign probes must do
+  `var w := i + 1`.
+- The probe kill loop must pierce Golems (`damage(999, true)`): flat shots
+  (turret 10) are fully blocked by armor 20, and a one-shot direct fallback
+  (99 -> 79 net) leaves a 300 hp Golem alive, which blocks the wave relay and
+  contaminates the next boot's checkpoint.
+- `director.wave_plan` override must come after the `director` ref is
+  acquired (m2 acquires it late — the override used to hit a Nil base).

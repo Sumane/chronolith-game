@@ -73,6 +73,7 @@ func _run() -> void:
 	entry = await _boot_entry()
 	rig = entry.get_node("PlayerRig")
 	director = entry.get_node("WaveDirector")
+	director.wave_plan = [3, 4, 5]  # prototype mode: campaign is 20 waves
 	arena = entry.get_node("Arena")
 	crystal = arena.crystal
 	combat = entry.get_node("Combat")
@@ -107,6 +108,7 @@ func _run() -> void:
 	entry = await _boot_entry()
 	rig = entry.get_node("PlayerRig")
 	director = entry.get_node("WaveDirector")
+	director.wave_plan = [3, 4, 5]  # prototype mode: campaign is 20 waves
 	arena = entry.get_node("Arena")
 	crystal = arena.crystal
 	combat = entry.get_node("Combat")
@@ -213,6 +215,7 @@ func _run() -> void:
 	entry = await _boot_entry()
 	rig = entry.get_node("PlayerRig")
 	director = entry.get_node("WaveDirector")
+	director.wave_plan = [3, 4, 5]  # prototype mode: campaign is 20 waves
 	director.prep_left = WaveDirector.PREP_TIME
 	# the body resets to the starter rover, but persisted blueprint effects
 	# (r1: +50 hp, r2: +1.5 speed) re-apply on boot — knowledge outlives the body

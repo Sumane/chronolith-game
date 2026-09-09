@@ -67,6 +67,7 @@ func _run() -> void:
 	entry = await _boot_entry()
 	rig = entry.get_node("PlayerRig")
 	director = entry.get_node("WaveDirector")
+	director.wave_plan = [3, 4, 5]  # prototype mode: campaign is 20 waves
 	crystal = entry.get_node("Arena").crystal
 	arena = entry.get_node("Arena")
 	var rover = rig.get_node("Rover")
