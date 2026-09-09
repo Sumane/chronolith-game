@@ -507,3 +507,45 @@ m5 13, m6 14, m6b 26, m6c 5, m6e 11, m7 24, progression 10 (155 v1 checks)
 - Control has no `layer` — beat UI lives in a CanvasLayer (layer 20).
 - A beat may open with the tree already paused (the ending): the close
   restores the pre-beat pause state, it never unpauses the win screen.
+
+## M8 — endless continuation and release hardening (v1)
+
+**Scope**: post-victory endless defence, safe pause, bounded spawns, the
+tested performance envelope and the documented remaining limitations.
+
+**Changes**
+- `waves/wave_director.gd` — `endless` mode: `begin_endless()` (wave 21,
+  prep countdown, no WIN state — the relay only advances); endless budget
+  `endless_size(w) = min(14 + (w-20)/2, 20)` (knob: slope/cap); endless
+  counters: Warden on `w % 3 == 2`, Golem on `w % 5 == 0`, Vrax never
+  respawns; `MAX_ALIVE = 24` spawn bound applied to real and debug waves.
+- `scenes/v1/entry.gd` — C on the win screen continues the victorious
+  physical state (rover/mech, buildings, cargo) into endless; endless
+  defeat is a separate "ENDLESS RUN ENDED AT WAVE n" screen — completion
+  and knowledge stay recorded, the finale never replays, and C does not
+  restart endless from a loss screen (R = fresh attempt with knowledge);
+  the nuke now skips Vrax (9999/4 chip would have killed the boss — the
+  mech is required); `_last_win_was_full` gates the continue path.
+- `ui/hud.gd` — "WAVE n (ENDLESS)" readout.
+- `tests/v1/m8_probe.{gd,tscn}` — NEW: **19/19** (continue into wave 21,
+  relay past the campaign, endless engram once, Warden-but-never-Vrax on
+  23, spawn bound 30→22, pause freeze/resume incl. nuke charges,
+  endless defeat separation, refused endless restart from loss).
+
+**Performance envelope (measured)** — headless, Godot 4.7.1, this machine
+(30 GB RAM; a healthy run holds ~118 MB): 250 frames at the 22-enemy
+spawn bound = ~6.9 ms/frame average, no errors, no leaked node groups.
+Headless numbers bound the CPU cost of simulation only; expect the
+frame budget to be display-bound, not simulation-bound, on real hardware
+up to the spawn bound. Above MAX_ALIVE the director simply stops
+spawning — a viable strategy is never destroyed by an uncapped field.
+
+**Remaining limitations (documented, not blockers)**
+- No right-stick camera aim / stick movement (d-pad + buttons work);
+  no audio, no final art pass, no weather, no bounded adaptation AI —
+  all explicitly deferred by the GDD.
+- Grunt/Warden attacks on the rover body are skipped where the node
+  lacks damage(); build.occupied is not cleared on building
+  destruction; M1 target dummies + the 2D-era blocker rock stay on the
+  map as probe dependencies.
+- 2D save corrupt-guard still prints the pre-existing JSON error line.

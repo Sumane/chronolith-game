@@ -18,6 +18,10 @@ enum State { PREP, ASSAULT, WIN }
 var wave := 1
 var state := State.PREP
 var wave_plan: Array = WAVE_PLAN  # live length (probe-overridable)
+## M8: endless continuation — non-canonical waves after the campaign win.
+## No Vrax (he died in the finale), no WIN state; the relay only advances.
+var endless := false
+const MAX_ALIVE := 24  # spawn bound: wave-20 peak (14 + 2 bosses) stays under it
 var prep_left := PREP_TIME
 var alive := 0
 var arena
@@ -54,7 +58,8 @@ func early_start() -> void:
 
 func _start_assault() -> void:
 	state = State.ASSAULT
-	var size: int = int(wave_plan[wave - 1])
+	var size: int = endless_size(wave) if endless else int(wave_plan[wave - 1])
+	size = mini(size, MAX_ALIVE - 2)
 	alive = size
 	var sector := int((wave - 1) * 2) % EDGES.size()
 	for i in size:
@@ -62,13 +67,13 @@ func _start_assault() -> void:
 		var t := get_tree().create_timer(i * SPAWN_STAGGER)
 		t.timeout.connect(_spawn_grunt.bind(e))
 	wave_started.emit(wave, _edge_name(EDGES[sector]))
-	var wcnt: int = WARDEN_WAVES.get(wave, 0)
+	var wcnt: int = WARDEN_WAVES.get(wave, 0) if not endless else (1 if wave % 3 == 2 else 0)
 	for j in wcnt:
 		if wave_plan.size() == 20 and wave == wave_plan.size():
 			_spawn_vrax(EDGES[(sector + size) % EDGES.size()])
 		else:
 			_spawn_warden(EDGES[(sector + size) % EDGES.size()])
-	var gcnt: int = GOLEM_WAVES.get(wave, 0)
+	var gcnt: int = GOLEM_WAVES.get(wave, 0) if not endless else (1 if wave % 5 == 0 else 0)
 	for k in gcnt:
 		_spawn_golem(EDGES[(sector + size + 1) % EDGES.size()])
 
@@ -149,7 +154,7 @@ func _spawn_vrax(edge: Vector3) -> void:
 func _on_grunt_died(_e) -> void:
 	alive -= 1
 	if state == State.ASSAULT and alive <= 0:
-		if wave >= wave_plan.size():
+		if not endless and wave >= wave_plan.size():
 			state = State.WIN
 			attempt_won.emit()
 		else:
@@ -161,18 +166,20 @@ func _on_grunt_died(_e) -> void:
 # debug/test hooks (typed calls)
 func debug_instant_wave(n: int) -> void:
 	state = State.ASSAULT
-	alive = n
+	alive = mini(n, MAX_ALIVE - 2)
 	var i := 0
-	while i < n:
+	while i < alive:
 		_spawn_grunt(EDGES[i % EDGES.size()])
 		i += 1
-	if WARDEN_WAVES.has(wave):
+	var dwcnt: int = WARDEN_WAVES.get(wave, 0) if not endless else (1 if wave % 3 == 2 else 0)
+	if dwcnt > 0:
 		if wave_plan.size() == 20 and wave == wave_plan.size():
 			_spawn_vrax(EDGES[(n) % EDGES.size()])
 		else:
 			_spawn_warden(EDGES[(n) % EDGES.size()])
 		alive += 1
-	if GOLEM_WAVES.has(wave):
+	var dgcnt: int = GOLEM_WAVES.get(wave, 0) if not endless else (1 if wave % 5 == 0 else 0)
+	if dgcnt > 0:
 		_spawn_golem(EDGES[(n + 1) % EDGES.size()])
 		alive += 1
 
@@ -180,3 +187,16 @@ func _edge_name(e: Vector3) -> String:
 	if absf(e.z) > absf(e.x):
 		return "NORTH" if e.z < 0 else "SOUTH"
 	return "EAST" if e.x > 0 else "WEST"
+
+
+## M8: endless wave budget — the wave-20 climax size ramps half a grunt per
+## wave, capped. Tuning knob: change the slope/cap here.
+func endless_size(w: int) -> int:
+	return mini(14 + (w - 20) / 2, 20)
+
+## M8: continue the victorious physical state into non-canonical waves.
+func begin_endless() -> void:
+	endless = true
+	state = State.PREP
+	wave = int(wave_plan.size()) + 1
+	prep_left = PREP_TIME

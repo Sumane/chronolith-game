@@ -46,6 +46,7 @@ var attempt_id := ""
 var research_screen: ResearchScreen
 var research_open := false
 var nuke_charge := 1
+var _last_win_was_full := false
 var _warden_event_t := 0.0
 var profile_recovered := false
 var _saved_attempt_id := ""
@@ -198,7 +199,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("debug_golem"):
 		_spawn_golem()
 	elif event.is_action_pressed("time_burst"):
-		_try_time_burst()
+		if not flow.running and _last_win_was_full:
+			_start_endless()
+		else:
+			_try_time_burst()
 	elif event.is_action_pressed("restart_attempt"):
 		get_tree().reload_current_scene()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and build.active:
@@ -290,6 +294,7 @@ func _on_ended(result: String) -> void:
 		knowledge.grant_wave(attempt_id, int(director.wave_plan.size()))
 		var n := int(director.wave_plan.size())
 		var full: bool = n == 20
+		_last_win_was_full = full
 		# M7: campaign completion is recorded BEFORE the ending plays, and
 		# never erased by a later endless defeat (M8 continues from here).
 		if full and not _story.get("completion", false):
@@ -309,9 +314,30 @@ func _on_ended(result: String) -> void:
 			_end_label.text = "CAMPAIGN CLEAR: %d WAVES\n(R — new attempt)" % n
 	else:
 		var reason := "the crystal was destroyed" if result == "lost_crystal" else "the rover was destroyed"
-		_end_label.text = "ATTEMPT LOST — " + reason + "\n(R — new attempt)"
+		if director.endless:
+			# M8: endless failure is separated from the campaign — completion
+			# and knowledge stay recorded, the finale never replays. C does not
+			# restart endless from a loss screen; R starts a fresh attempt.
+			_last_win_was_full = false
+			_end_label.text = "ENDLESS RUN ENDED AT WAVE %d — THE CAMPAIGN REMAINS COMPLETE\n(R — new attempt)" % director.wave
+		else:
+			_end_label.text = "ATTEMPT LOST — " + reason + "\n(R — new attempt)"
 	_save_profile()
 	_end_overlay.visible = true
+
+## M8: continue the victorious physical state into wave 21+ (non-canonical).
+## C on the win screen; the time-burst key is free while the flow is over.
+func _start_endless() -> void:
+	if flow.running or not _last_win_was_full:
+		return
+	director.begin_endless()
+	flow.running = true
+	flow.last_result = ""
+	_end_overlay.visible = false
+	get_tree().paused = false
+	Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
+	_set_banner("ENDLESS DEFENCE — WAVE %d (non-canonical: the campaign is complete)" % director.wave)
+	_refresh_hud()
 
 func _on_pause_toggled(paused: bool) -> void:
 	_overlay.visible = paused
@@ -376,6 +402,9 @@ func _fire_nuke() -> void:
 		return
 	nuke_charge -= 1
 	for en in get_tree().get_nodes_in_group("enemy"):
+		# M8: the boss is out of scope — the mech is required to defeat Vrax
+		if en is Vrax:
+			continue
 		if en is Warden:
 			en.call("damage", 9999, true)
 		else:
@@ -499,7 +528,8 @@ func _refresh_hud() -> void:
 	if not flow.running:
 		state = "ENDED"
 		info = flow.last_result
-	hud.set_wave(state, director.wave, int(director.wave_plan.size()), info)
+	var total: int = -1 if director.endless else int(director.wave_plan.size())
+	hud.set_wave(state, director.wave, total, info)
 	hud.set_rover(rig.hp, rig.max_hp, "MECH" if rig.mech_mode else "ROVER")
 	hud.set_crystal(arena.crystal.integrity, arena.crystal.max_integrity)
 	if build.active:

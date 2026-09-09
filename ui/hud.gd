@@ -58,7 +58,10 @@ func set_scrap(n: int, cost_w: int, cost_t: int, nukes: int = -1) -> void:
 		scrap_label.text = "SCRAP %d   (wall %d / turret %d)" % [n, cost_w, cost_t]
 
 func set_wave(state_name: String, wave: int, total: int, info: String) -> void:
-	wave_label.text = "WAVE %d/%d  %s  %s" % [wave, total, state_name, info]
+	if total <= 0:
+		wave_label.text = "WAVE %d (ENDLESS)  %s  %s" % [wave, state_name, info]
+	else:
+		wave_label.text = "WAVE %d/%d  %s  %s" % [wave, total, state_name, info]
 
 func set_rover(hp: int, max_hp: int, body_name: String = "ROVER") -> void:
 	rover_label.text = "%s  %d/%d" % [body_name, hp, max_hp]
