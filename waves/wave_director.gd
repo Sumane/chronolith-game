@@ -36,6 +36,11 @@ signal wave_cleared(wave: int)
 signal attempt_won()
 signal warden_event(w: Warden, kind: String)
 signal golem_event(g: Golem, kind: String)
+signal warden_died(w: Warden)
+signal golem_died(g: Golem)
+
+## M7: the finale boss reference (spawned on the final full-campaign wave)
+var vrax: Vrax = null
 
 func _physics_process(delta: float) -> void:
 	if state == State.PREP:
@@ -59,7 +64,10 @@ func _start_assault() -> void:
 	wave_started.emit(wave, _edge_name(EDGES[sector]))
 	var wcnt: int = WARDEN_WAVES.get(wave, 0)
 	for j in wcnt:
-		_spawn_warden(EDGES[(sector + size) % EDGES.size()])
+		if wave_plan.size() == 20 and wave == wave_plan.size():
+			_spawn_vrax(EDGES[(sector + size) % EDGES.size()])
+		else:
+			_spawn_warden(EDGES[(sector + size) % EDGES.size()])
 	var gcnt: int = GOLEM_WAVES.get(wave, 0)
 	for k in gcnt:
 		_spawn_golem(EDGES[(sector + size + 1) % EDGES.size()])
@@ -86,6 +94,7 @@ func debug_spawn_warden(pos: Vector3) -> Warden:
 	w.arena = arena
 	w._rover = rover
 	w.died.connect(_on_grunt_died)
+	w.died.connect(func(wd: Warden) -> void: warden_died.emit(wd))
 	w.warden_event.connect(func(w2: Warden, k2: String) -> void: warden_event.emit(w2, k2))
 	arena.get_parent().add_child(w)
 	return w
@@ -101,6 +110,7 @@ func _spawn_warden(edge: Vector3) -> void:
 	w.arena = arena
 	w._rover = rover
 	w.died.connect(_on_grunt_died)
+	w.died.connect(func(wd: Warden) -> void: warden_died.emit(wd))
 	w.warden_event.connect(func(w2: Warden, k2: String) -> void: warden_event.emit(w2, k2))
 	arena.get_parent().add_child(w)
 
@@ -115,8 +125,26 @@ func _spawn_golem(edge: Vector3) -> void:
 	g.arena = arena
 	g._rover = rover
 	g.died.connect(_on_grunt_died)
+	g.died.connect(func(gd: Golem) -> void: golem_died.emit(gd))
 	g.golem_event.connect(func(g2: Golem, k2: String) -> void: golem_event.emit(g2, k2))
 	arena.get_parent().add_child(g)
+
+
+func _spawn_vrax(edge: Vector3) -> void:
+	if state != State.ASSAULT:
+		return
+	var v: Vrax = Vrax.new()
+	v.position = Vector3(edge.x, 1.0, edge.z)
+	if arena != null and arena.has_method("height_at"):
+		v.position.y = arena.height_at(edge.x, edge.z) + 0.5
+	v.goal = crystal
+	v.arena = arena
+	v._rover = rover
+	v.died.connect(_on_grunt_died)
+	v.died.connect(func(wd: Warden) -> void: warden_died.emit(wd))
+	v.warden_event.connect(func(w2: Warden, k2: String) -> void: warden_event.emit(w2, k2))
+	arena.get_parent().add_child(v)
+	vrax = v
 
 func _on_grunt_died(_e) -> void:
 	alive -= 1
@@ -139,7 +167,10 @@ func debug_instant_wave(n: int) -> void:
 		_spawn_grunt(EDGES[i % EDGES.size()])
 		i += 1
 	if WARDEN_WAVES.has(wave):
-		_spawn_warden(EDGES[(n) % EDGES.size()])
+		if wave_plan.size() == 20 and wave == wave_plan.size():
+			_spawn_vrax(EDGES[(n) % EDGES.size()])
+		else:
+			_spawn_warden(EDGES[(n) % EDGES.size()])
 		alive += 1
 	if GOLEM_WAVES.has(wave):
 		_spawn_golem(EDGES[(n + 1) % EDGES.size()])

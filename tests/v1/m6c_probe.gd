@@ -37,6 +37,8 @@ func _run() -> void:
 	var es := ResourceLoader.load("res://scenes/v1/entry.tscn") as PackedScene
 	entry = es.instantiate()
 	add_child(entry)
+	# story beats off: this probe drives the flow itself
+	entry.story_enabled = false
 	await _wait(40)
 	arena = entry.get_node("Arena")
 	director = entry.get_node("WaveDirector")

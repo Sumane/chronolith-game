@@ -458,3 +458,52 @@ rover body are skipped where the node lacks damage(); build.occupied not
 cleared on building destruction; kill scrap is probe-only; M1 target
 dummies and the 2D-era blocker remain on the map (probe dependencies,
 re-home in M7/M8).
+
+## M7 — story, finale and one ending (v1)
+
+**Scope**: the GDD's single ending, playable and probe-verified. Vael's
+upload opens the first boot; milestone memories fire once; Vrax commands
+the wave-20 finale; the seal is repaired, the loop ends, Vael answers
+NASA. Completion is recorded before the ending plays; a finale defeat is a
+normal defeat; the ending skips after completion. No victory reset, no
+second ending, temporal builds keep their abilities.
+
+**Changes**
+- `combat/vrax.gd` — NEW: Vrax (extends Warden, 400 hp, biomechanical
+  dark-red, 1.4x). The GDD's "mech is required to defeat the final boss":
+  flat shots fully ignored, non-mech piercing chips (n/4 — fortresses
+  "actively control" the fight), only the mech's heavy round deals full.
+  Wall deflect still stuns, never damages.
+- `combat/combat.gd` — `fire(..., mech: bool = false)`; Vrax branch passes
+  the mech flag (checked before the Warden branch — Vrax is-a Warden).
+- `waves/wave_director.gd` — `_spawn_vrax` replaces the Warden on the
+  final full-plan wave (20); `warden_died`/`golem_died` relays; `vrax` ref.
+  `debug_instant_wave` spawns the boss on wave 20 of the full plan.
+- `scenes/v1/entry.gd` — story state in the profile (`story_flags`:
+  seen_opening, memories, completion, ending_seen); pausable skippable
+  beat overlay (CanvasLayer 20) driven by `story/beat_gate.gd`
+  (PROCESS_MODE_ALWAYS, any key or gamepad button closes); opening beat on
+  first boot; one-shot memory beats (first Warden, first Golem, mech
+  transform); Vrax taunt on wave 15 and finale text on wave 20; win path:
+  completion persisted **before** the ending beat, ending seen once, then
+  skipped; `_on_fired` mech round passes the mech flag.
+- Nine v1 probes set `entry.story_enabled = false` (beats off; the m7
+  probe drives the story itself).
+- `tests/v1/m7_probe.{gd,tscn}` — NEW: **24/24** across three entries
+  (fresh: opening + memory beats + Vrax gate + finale; returning:
+  death-in-finale keeps completion; second victory skips the ending).
+
+**Validation** — full regression after M7: m1 8, m2 13, m3 13, m4 18,
+m5 13, m6 14, m6b 26, m6c 5, m6e 11, m7 24, progression 10 (155 v1 checks)
++ 2D smoke 71 — all green.
+
+**Gotchas**
+- GDScript: no implicit multi-line string concatenation inside parentheses
+  (parse error "Expected closing ')'"); STORY_* consts are single-line.
+- `MeshInstance3D` in 4.7.1: tint via `get_material_override()` — there is
+  no `get_material`/`get_surface_material`.
+- Beats pause the tree: probe waits must use `process_frame`, never
+  `physics_frame` (physics frames stop while paused = silent hang).
+- Control has no `layer` — beat UI lives in a CanvasLayer (layer 20).
+- A beat may open with the tree already paused (the ending): the close
+  restores the pre-beat pause state, it never unpauses the win screen.

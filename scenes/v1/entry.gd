@@ -4,6 +4,34 @@ extends Node3D
 
 const START_CARGO := 6
 
+# M7 story beats — short, skippable, paused. The GDD fixes the outcome:
+# one ending, no victory reset, temporal builds keep their abilities.
+const STORY_OPENING := "VAEL — LAST ARCHIVIST
+ Crash site. The shard bridges into the machine: a NASA rover, cold and waiting.
+ Under the base, the Chronolith holds Sorrak the Undying — and his descendants have found us.
+ Vael: 'Right. A scholar in a rover, fighting a war of ghosts. I can work with that.'
+ Every defeat resets the world. The knowledge stays."
+const STORY_WARDEN := "The first Warden falls.
+ Vael: 'It charges like the old fortifications. Piercing rounds ignore that armor —
+ or put a wall in its lane and let it break itself.'"
+const STORY_GOLEM := "The Golem breaks on the piercing round.
+ Vael: 'Armor like a tomb door. The Archivist records. The Archivist adjusts.'"
+const STORY_MECH := "The chassis reshapes around the shard.
+ Vael: 'There you are. I had forgotten what the rest of me felt like.'
+ The warrior mech is online."
+const STORY_TAUNT := "High above the dust, the command ship rises.
+ Vrax: 'Every attempt, Archivist. I have watched you rebuild the same mistakes.
+ The seal was always a formality.'"
+const STORY_FINALE := "The last wave gathers around the crystal.
+ Vael: 'Sorrak stirs beneath it. Finish this. End the loop.'"
+const STORY_ENDING := "The mech stands over Vrax's broken command ship. The seal-key turns —
+ the Chronolith re-seals, and the loop ends.
+ The Corsairs withdraw into the dust. Sorrak stays where he has always been.
+ Far away, a NASA probe finally gets an answer:
+ 'This is CHRONOLITH-1. I'm home. — V.'
+
+ COMPLETION RECORDED — the victory may continue beyond wave 20."
+
 var cargo := START_CARGO
 var rig: PlayerRig
 var combat: Combat
@@ -32,6 +60,14 @@ var _banner_t := 0.0
 var _banner := ""
 var _hud_t := 0.0
 
+# M7 story state (persisted in the profile under story_flags)
+var story_enabled := true
+var _story := {}
+var beat_gate: BeatGate
+var _beat_ui: CanvasLayer = null
+var _beat_open := false
+var _beat_paused_before := false
+
 func _ready() -> void:
 	# explicit pause semantics: this subtree must honor tree.paused even when
 	# embedded under an ALWAYS parent (headless probes)
@@ -57,6 +93,13 @@ func _ready() -> void:
 	director.name = "WaveDirector"
 	director.arena = arena
 	director.golem_event.connect(_on_golem_event)
+	director.warden_died.connect(_on_warden_died)
+	director.golem_died.connect(_on_golem_died)
+	beat_gate = BeatGate.new()
+	beat_gate.name = "BeatGate"
+	beat_gate.process_mode = Node.PROCESS_MODE_ALWAYS
+	beat_gate.closed.connect(_close_beat)
+	add_child(beat_gate)
 	director.crystal = arena.crystal
 	director.rover = rig.get_node("Rover")
 	add_child(director)
@@ -93,6 +136,7 @@ func _ready() -> void:
 	_resume_checkpoint()
 	_refresh_hud()
 	print("M2_ENTRY_READY")
+	call_deferred("_maybe_opening")
 
 func _wire() -> void:
 	rig.fired.connect(_on_fired)
@@ -196,7 +240,7 @@ func _add_key(action: String, keycode: Key) -> void:
 
 func _on_fired(from: Vector3, to: Vector3) -> void:
 	if rig.mech_mode:
-		combat.fire(from, to, [rig.rover_rid()], MechData.GUN_DMG, true)
+		combat.fire(from, to, [rig.rover_rid()], MechData.GUN_DMG, true, true)
 	else:
 		combat.fire(from, to, [rig.rover_rid()])
 
@@ -217,6 +261,11 @@ func _on_repair(b: Node) -> void:
 		_set_banner("REPAIRED +10 (1 scrap)")
 
 func _on_wave_started(wave: int, direction: String) -> void:
+	if int(director.wave_plan.size()) == 20:
+		if wave == 15:
+			_memory("vrax_taunt", STORY_TAUNT)
+		elif wave == 20:
+			_memory("finale", STORY_FINALE)
 	# M6e: counter warning — say what is coming and what beats it
 	var warn := ""
 	if WaveDirector.WARDEN_WAVES.has(wave):
@@ -239,12 +288,29 @@ func _on_ended(result: String) -> void:
 	_pause_gate.disabled = true
 	if result == "win":
 		knowledge.grant_wave(attempt_id, int(director.wave_plan.size()))
-	_save_profile()
-	if result == "win":
-		_end_label.text = "CAMPAIGN CLEAR: %d WAVEs\n(R — new attempt)" % [int(director.wave_plan.size())]
+		var n := int(director.wave_plan.size())
+		var full: bool = n == 20
+		# M7: campaign completion is recorded BEFORE the ending plays, and
+		# never erased by a later endless defeat (M8 continues from here).
+		if full and not _story.get("completion", false):
+			_story["completion"] = true
+		if full:
+			_save_profile()
+		if full and not _story.get("ending_seen", false):
+			_story["ending_seen"] = true
+			_save_profile()
+			_end_label.text = "CAMPAIGN CLEAR: %d WAVES" % n
+			_end_overlay.visible = true
+			_show_beat(STORY_ENDING)
+			return
+		if full:
+			_end_label.text = "CAMPAIGN CLEAR: %d WAVES\n(completion already recorded — ending skipped)\n(R — new attempt)" % n
+		else:
+			_end_label.text = "CAMPAIGN CLEAR: %d WAVES\n(R — new attempt)" % n
 	else:
 		var reason := "the crystal was destroyed" if result == "lost_crystal" else "the rover was destroyed"
 		_end_label.text = "ATTEMPT LOST — " + reason + "\n(R — new attempt)"
+	_save_profile()
 	_end_overlay.visible = true
 
 func _on_pause_toggled(paused: bool) -> void:
@@ -259,6 +325,8 @@ func _load_profile() -> void:
 	profile_recovered = bool(loaded.get("recovered", false))
 	var data: Dictionary = loaded["data"]
 	knowledge.restore(data.get("knowledge", {}))
+	var sf: Dictionary = data.get("story_flags", {})
+	_story = sf if sf is Dictionary else {}
 	var att: Dictionary = data.get("attempt", {})
 	if att.size() > 0:
 		_saved_attempt_id = str(att.get("id", ""))
@@ -283,7 +351,7 @@ func _profile_data() -> Dictionary:
 	var d := {
 		"schema_version": ProfileStore.SCHEMA_VERSION,
 		"knowledge": knowledge.snapshot(),
-		"story_flags": {},
+		"story_flags": _story,
 	}
 	if flow.running:
 		d["attempt"] = {"id": attempt_id, "wave": director.wave, "cargo": cargo}
@@ -331,6 +399,7 @@ func _try_transform_mech() -> void:
 	spend(MechData.BUILD_COST)
 	rig.transform_to_mech()
 	_set_banner("HYBRID MECH ONLINE — HEAVY PIERCING GUN (T: no de-transform in M5)")
+	_memory("mech", STORY_MECH)
 	_refresh_hud()
 
 func _spawn_golem() -> void:
@@ -442,6 +511,80 @@ func _set_banner(text: String) -> void:
 	_banner = text
 	_banner_t = 3.0
 	hud.set_banner(_banner)
+
+# ------------------------------------------------------------- M7 story -----
+
+func _maybe_opening() -> void:
+	if _story.get("seen_opening", false):
+		return
+	_story["seen_opening"] = true
+	_save_profile()
+	_show_beat(STORY_OPENING)
+
+## One-shot memory beat; the flag persists in the profile.
+func _memory(key: String, text: String) -> void:
+	var mem: Dictionary = _story.get("memories", {})
+	if mem.has(key):
+		return
+	mem[key] = true
+	_story["memories"] = mem
+	_save_profile()
+	_show_beat(text)
+
+func _on_warden_died(_w: Warden) -> void:
+	_memory("warden_first", STORY_WARDEN)
+
+func _on_golem_died(_g: Golem) -> void:
+	_memory("golem_first", STORY_GOLEM)
+
+## Pausable, skippable story overlay. A beat may open while the tree is
+## already paused (the ending) — it restores whatever pause state preceded it.
+func _show_beat(text: String) -> void:
+	if not story_enabled or _beat_open:
+		return
+	_beat_open = true
+	_beat_paused_before = get_tree().paused
+	beat_gate.open = true
+	_beat_ui = CanvasLayer.new()
+	_beat_ui.name = "BeatUI"
+	_beat_ui.layer = 20
+	var dim := ColorRect.new()
+	dim.color = Color(0.01, 0.01, 0.04, 0.88)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_beat_ui.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(860, 300)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
+	var label := Label.new()
+	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 18)
+	box.add_child(label)
+	var hint := Label.new()
+	hint.text = "— press any key —"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	box.add_child(hint)
+	panel.add_child(box)
+	center.add_child(panel)
+	_beat_ui.add_child(center)
+	add_child(_beat_ui)
+	if not get_tree().paused:
+		get_tree().paused = true
+
+func _close_beat() -> void:
+	if not _beat_open:
+		return
+	_beat_open = false
+	if _beat_ui != null:
+		_beat_ui.queue_free()
+		_beat_ui = null
+	if not _beat_paused_before:
+		get_tree().paused = false
 
 # ------------------------------------------------------------- overlays ------
 

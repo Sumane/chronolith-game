@@ -26,6 +26,8 @@ func _run() -> void:
 	var entry_res: PackedScene = ResourceLoader.load("res://scenes/v1/entry.tscn")
 	var entry := entry_res.instantiate()
 	add_child(entry)
+	# story beats off: this probe drives the flow itself
+	entry.story_enabled = false
 	await _frames(30)
 	var rig: PlayerRig = entry.get_node("PlayerRig")
 	var combat: Combat = entry.get_node("Combat")

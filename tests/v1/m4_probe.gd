@@ -53,6 +53,7 @@ func _ground(x: float, z: float) -> float:
 func _boot_entry() -> Node:
 	var es := ResourceLoader.load("res://scenes/v1/entry.tscn") as PackedScene
 	var e = es.instantiate()
+	e.story_enabled = false  # story beats off: probe drives the flow itself
 	add_child(e)
 	await _wait(40)
 	return e
