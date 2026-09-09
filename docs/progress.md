@@ -415,3 +415,46 @@ clears `[5, 9, 13, 17, 20]` (cumulative engrams `[5, 14, 27, 44, 64]`),
 expansion**, exactly as the barrier semantics predict (barriers check
 earned engrams; purchase dynamics never move the earliest win).
 Progression probe 10/10 with the catalog check flipped to >= 45.
+
+## M6e — counter explanations + input remapping (v1)
+
+**Scope**: the game tells you what is coming and what beats it, and the
+core actions answer to a gamepad.
+
+**Changes**
+- `scenes/v1/entry.gd` — `_on_wave_started` appends a counter warning to
+  the inbound banner: WARDEN waves ("PIERCE OR RAM"), GOLEM waves ("FLAT
+  SHOTS BLOCKED (PIERCE OR RAM)"), both on wave 20.
+- `ui/research_screen.gd` — static counter strip under the stats line:
+  "COUNTERS — Grunt: any damage · Warden: pierce shot or ram · Golem:
+  armor 20 blocks flat shots — pierce or ram".
+- `core/input_map_setup.gd` — `GAMEPAD_BINDINGS` (Xbox layout): A fire,
+  B interact, X/Y build 1/2, right-stick cancel, Start pause, Back new
+  attempt, d-pad movement. Registered alongside the existing keyboard and
+  mouse events; runtime-added v1 keys (G/C/T/F/P) stay keyboard for now.
+- `tests/v1/m6e_probe.{gd,tscn}` — NEW: **11/11** (banner warnings on
+  3/5/20/1, no false warning on wave 1, counter strip present, six core
+  actions carry gamepad + legacy bindings).
+
+## M6 — complete
+
+**Done criteria**: playable twenty-wave route (m6b: full campaign run,
+exact counter schedule, WIN only at wave 20) + recognisable map (m6c) +
+~45 active minutes (tuning knobs documented in wave_director.gd: PREP_TIME
+20 s, wave 1 ~15 s assault to wave 20 ~90 s, breather dips — feel is Marc's
+review) + usable final route per specialisation (M6a: all five lines reach
+their terminal node, mech gate 8 scrap, five routes demonstrated in the
+progression traces) + counter explanations and warnings + input remapping
+(m6e). Earliest-win revalidated on real campaign data (M6d: attempt 5,
+unchanged).
+
+**Validation** — final regression: m1 8, m2 13, m3 13, m4 18, m5 13, m6 14,
+m6b 26, m6c 5, m6e 11, progression 10 (131 v1 checks) + 2D smoke 71 — all
+green.
+
+**Known gaps carried to M7/M8**: right-stick camera aim and stick movement
+(gamepad aim deferred — buttons/d-pad work); grunt/warden attacks on the
+rover body are skipped where the node lacks damage(); build.occupied not
+cleared on building destruction; kill scrap is probe-only; M1 target
+dummies and the 2D-era blocker remain on the map (probe dependencies,
+re-home in M7/M8).

@@ -26,6 +26,22 @@ const MOUSE_BINDINGS := {
 	"cancel_build": MOUSE_BUTTON_RIGHT,
 }
 
+# M6e: default gamepad bindings (Xbox layout). Right-stick camera aim and
+# stick movement stay keyboard/mouse for now (M8 polish).
+const GAMEPAD_BINDINGS := {
+	"fire": [JOY_BUTTON_A],
+	"interact": [JOY_BUTTON_B],
+	"build_1": [JOY_BUTTON_X],
+	"build_2": [JOY_BUTTON_Y],
+	"cancel_build": [JOY_BUTTON_RIGHT_STICK],
+	"pause_toggle": [JOY_BUTTON_START],
+	"rewind": [JOY_BUTTON_BACK],
+	"move_up": [JOY_BUTTON_DPAD_UP],
+	"move_down": [JOY_BUTTON_DPAD_DOWN],
+	"move_left": [JOY_BUTTON_DPAD_LEFT],
+	"move_right": [JOY_BUTTON_DPAD_RIGHT],
+}
+
 static var _done := false
 
 static func setup() -> void:
@@ -45,3 +61,10 @@ static func setup() -> void:
 		var mb := InputEventMouseButton.new()
 		mb.button_index = MOUSE_BINDINGS[action]
 		InputMap.action_add_event(action, mb)
+	for action: String in GAMEPAD_BINDINGS:
+		if not InputMap.has_action(action):
+			InputMap.add_action(action)
+		for btn: int in GAMEPAD_BINDINGS[action]:
+			var je := InputEventJoypadButton.new()
+			je.button_index = btn
+			InputMap.action_add_event(action, je)

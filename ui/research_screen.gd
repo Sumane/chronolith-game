@@ -42,6 +42,11 @@ func _ready() -> void:
 	_stats.add_theme_font_size_override("font_size", 16)
 	_stats.add_theme_color_override("font_color", Color(1, 0.9, 0.5))
 	box.add_child(_stats)
+	var counters := Label.new()
+	counters.text = "COUNTERS — Grunt: any damage · Warden: pierce shot or ram · Golem: armor 20 blocks flat shots — pierce or ram"
+	counters.add_theme_font_size_override("font_size", 14)
+	counters.add_theme_color_override("font_color", Color(0.8, 0.85, 0.9))
+	box.add_child(counters)
 	for i in ResearchTree.ORDER.size():
 		var id: String = ResearchTree.ORDER[i]
 		var node: Dictionary = ResearchTree.NODES[id]

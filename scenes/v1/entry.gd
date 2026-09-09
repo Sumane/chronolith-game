@@ -217,7 +217,13 @@ func _on_repair(b: Node) -> void:
 		_set_banner("REPAIRED +10 (1 scrap)")
 
 func _on_wave_started(wave: int, direction: String) -> void:
-	_set_banner("WAVE %d INBOUND FROM THE %s — HOLD THE CRYSTAL" % [wave, direction])
+	# M6e: counter warning — say what is coming and what beats it
+	var warn := ""
+	if WaveDirector.WARDEN_WAVES.has(wave):
+		warn = " — WARDEN: PIERCE OR RAM"
+	if WaveDirector.GOLEM_WAVES.has(wave):
+		warn += " — GOLEM: FLAT SHOTS BLOCKED (PIERCE OR RAM)"
+	_set_banner("WAVE %d INBOUND FROM THE %s — HOLD THE CRYSTAL%s" % [wave, direction, warn])
 
 func _on_wave_cleared(wave: int) -> void:
 	var got := knowledge.grant_wave(attempt_id, wave)
