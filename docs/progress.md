@@ -400,3 +400,18 @@ smoke 71/71.
   moved to wrap that pocket, not fill it. Map edits near probe build
   points (m2 (10,10)/(13,13), m3 (10,10), m6 (5.5,3.5)/(3.5,5.5)) must be
   checked against this rule.
+
+## M6d — model sync + earliest-win revalidation (v1)
+
+**Scope**: the progression model consumes the expanded catalog and the
+TEMPORAL line; the earliest-win validation is rerun against the real
+20-wave campaign barrier data.
+
+**Result** — `progression_model.gd` purchase rule includes
+`line_chain("TEMPORAL")` (done in M6a). `docs/progression-traces.json`
+regenerated: catalog depth **45** (wave-16 barrier gap closed), reference
+clears `[5, 9, 13, 17, 20]` (cumulative engrams `[5, 14, 27, 44, 64]`),
+**earliest win attempt 5 for 0/1/2 nukes — unchanged by the catalog
+expansion**, exactly as the barrier semantics predict (barriers check
+earned engrams; purchase dynamics never move the earliest win).
+Progression probe 10/10 with the catalog check flipped to >= 45.
