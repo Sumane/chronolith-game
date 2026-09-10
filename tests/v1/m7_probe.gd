@@ -1,7 +1,7 @@
 extends Node
 ## M7 probe: story, finale and one ending.
 ## e1 fresh profile: opening beat, warden/golem memory beats, the Vrax
-##    mech gate (flat immune, non-mech chip, mech full), wave-20 finale —
+##    mech gate (M13: every non-mech shot ignored, mech full), wave-20 finale —
 ##    completion recorded in the profile BEFORE the ending beat plays
 ## e2 with completion: death in the finale is a normal defeat and never
 ##    erases the recorded completion
@@ -115,9 +115,9 @@ func _run() -> void:
 		v.damage(50, false)
 		check("e1: Vrax immune to flat shots (hp 400)", v.hp == Vrax.BOSS_HP)
 		v.damage(40, true, false)
-		check("e1: non-mech pierce chips (400 -> 390)", v.hp == Vrax.BOSS_HP - 10)
+		check("e1: non-mech pierce is ignored (mech mandatory)", v.hp == Vrax.BOSS_HP)
 		v.damage(40, true, true)
-		check("e1: mech heavy round deals full (390 -> 350)", v.hp == Vrax.BOSS_HP - 50)
+		check("e1: mech heavy round deals full (400 -> 360)", v.hp == Vrax.BOSS_HP - 40)
 
 	# golem memory beat, then the win
 	for e in get_tree().get_nodes_in_group("enemy"):

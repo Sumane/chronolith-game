@@ -60,20 +60,22 @@ func _start_assault() -> void:
 	state = State.ASSAULT
 	var size: int = endless_size(wave) if endless else int(wave_plan[wave - 1])
 	size = mini(size, MAX_ALIVE - 2)
-	alive = size
+	var wcnt: int = WARDEN_WAVES.get(wave, 0) if not endless else (1 if wave % 3 == 2 else 0)
+	var gcnt: int = GOLEM_WAVES.get(wave, 0) if not endless else (1 if wave % 5 == 0 else 0)
+	# every spawned enemy — bosses included — is budgeted into alive, so the
+	# wave cannot clear while a Warden/Golem/Vrax is still walking
+	alive = size + wcnt + gcnt
 	var sector := int((wave - 1) * 2) % EDGES.size()
 	for i in size:
 		var e: Vector3 = EDGES[(sector + i) % EDGES.size()]
 		var t := get_tree().create_timer(i * SPAWN_STAGGER)
 		t.timeout.connect(_spawn_grunt.bind(e))
 	wave_started.emit(wave, _edge_name(EDGES[sector]))
-	var wcnt: int = WARDEN_WAVES.get(wave, 0) if not endless else (1 if wave % 3 == 2 else 0)
 	for j in wcnt:
 		if wave_plan.size() == 20 and wave == wave_plan.size():
 			_spawn_vrax(EDGES[(sector + size) % EDGES.size()])
 		else:
 			_spawn_warden(EDGES[(sector + size) % EDGES.size()])
-	var gcnt: int = GOLEM_WAVES.get(wave, 0) if not endless else (1 if wave % 5 == 0 else 0)
 	for k in gcnt:
 		_spawn_golem(EDGES[(sector + size + 1) % EDGES.size()])
 

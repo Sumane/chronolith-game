@@ -1,14 +1,14 @@
 class_name Vrax
 extends Warden
 ## M7 finale boss: Vrax commands the Corsair wave and holds temporal memory
-## of Vael's earlier attempts. The GDD is unambiguous — the mech is required
-## to defeat the final boss: flat shots are ignored entirely, non-mech
-## piercing shots chip (fortresses "actively control" the fight), and only
-## the mech's heavy round deals full damage. Walls still stun (deflect),
-## never damage.
+## of Vael's earlier attempts. The GDD is unambiguous — the mech is
+## REQUIRED to defeat the final boss: every non-mech shot (flat or
+## piercing, turret or wall) is ignored outright, and only the mech's
+## heavy round deals damage. Walls still stun (deflect), never damage.
+## (Review fix M13: the former non-mech "chip" let fortresses kill Vrax
+## without the mech, making the requirement optional.)
 
 const BOSS_HP := 400
-const CHIP_DIVISOR := 4
 
 func _ready() -> void:
 	hp = BOSS_HP
@@ -24,12 +24,11 @@ func _ready() -> void:
 func damage(n: int, piercing: bool = false, from_mech: bool = false) -> void:
 	if _dead:
 		return
-	if not piercing:
+	if not from_mech:
 		warden_event.emit(self, "immune")
 		return
-	var dmg: int = n if from_mech else maxi(1, n / CHIP_DIVISOR)
-	warden_event.emit(self, "counter" if from_mech else "chip")
-	hp -= dmg
+	warden_event.emit(self, "counter")
+	hp -= n
 	if hp <= 0:
 		_die()
 
