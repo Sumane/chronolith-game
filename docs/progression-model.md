@@ -89,7 +89,11 @@ it, never shorten it).
    what a counter *does in combat* is a gameplay question the model cannot
    answer (see limitation 4).
 3. **Scrap economy is illustrative** (start 6, +6/wave, lump build costs).
-   Real harvest distance, deposit depletion and repair drain are not modelled.
+   Real harvest distance, deposit depletion and repair drain are not
+   modelled. Since M18 the in-run scrap sink is complete: buildings,
+   the mech build, and ROVER deployments (cargo = engram cost, chain
+   order, reserving the mech build) — the five-attempt proof counts
+   every scrap spend except field salvage.
 4. **No in-run timing.** The model is a clear-level simulation: no wave
    duration, no skill ceiling, no crystal-damage races. A path the model
    calls attainable still has to be *defended* in real time.

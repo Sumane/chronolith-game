@@ -101,6 +101,8 @@ static func simulate_attempt(start_earned: int, start_spent: int,
 	var nukes_used := {}
 	var purchases := []
 	var mech_built := false
+	# M18: ROVER deployments are per-attempt — every attempt starts undeployed
+	var deployed: Array = []
 	var wave := 1
 	var cleared := 0
 	var holdouts_left := int(strategy.get("holdout", 0))
@@ -110,8 +112,7 @@ static func simulate_attempt(start_earned: int, start_spent: int,
 	while wave <= nwaves:
 		var need := required_threshold(wave)
 		# purchases happen "immediately usable after wave clear": before the
-		# next wave, buy the next line node while affordable (mixed builds:
-		# any line is a valid counter — the search covers all three).
+		# next wave, buy the next line node while affordable.
 		if balance > 0:
 			for chain in [line_chain("TURRET"), line_chain("FORT"), line_chain("ROVER"), line_chain("TEMPORAL")]:
 				for id in chain:
@@ -133,6 +134,18 @@ static func simulate_attempt(start_earned: int, start_spent: int,
 			if researched.has("mech") and not mech_built and scrap >= mech_build_cost():
 				scrap -= mech_build_cost()
 				mech_built = true
+		# M18: deployment is a SCRAP sink, not an engram spend — researched
+		# ROVER nodes deploy once per attempt for cargo = their engram cost.
+		# Policy: chain order, as early as scrap allows, but never starve the
+		# mech build (the only purchase that gates the win).
+		for d_id in ResearchTree.ROVER_DEPLOY_ORDER:
+			if researched.has(d_id) and not deployed.has(d_id):
+				var dcost: int = int(ResearchTree.NODES[d_id]["cost"])
+				var reserve: int = mech_build_cost() if researched.has("mech") and not mech_built else 0
+				if scrap >= dcost + reserve:
+					scrap -= dcost
+					deployed.append(d_id)
+					purchases.append({"id": "deploy_" + str(d_id), "cost": dcost, "wave_after": wave - 1})
 		var ok := earned >= need
 		if wave == nwaves and not mech_built and not researched.has("mech"):
 			ok = false  # final fight requires the mech
@@ -158,6 +171,7 @@ static func simulate_attempt(start_earned: int, start_spent: int,
 		"nukes_used": nukes_used,
 		"purchases": purchases,
 		"mech_built": mech_built,
+		"deployed": deployed.duplicate(),
 		"blocked_wave": blocked_wave,
 		"won": wave > nwaves,
 	}
@@ -228,6 +242,10 @@ static func run_campaign(nukes_per_attempt: int, respec: bool,
 ## so which research line is bought cannot change a clear — the purchase
 ## policy is fixed to spend-immediately, and hoarding can only delay the
 ## mech chain (the only purchase timing that matters), never shorten it.
+## M18: researched ROVER nodes deploy in-run for cargo (enogram cost) —
+## modelled as a scrap sink in chain order, reserving scrap for the mech
+## build (deploying is a survivability choice; the only scrap race that
+## gates the win is the mech).
 static func search() -> Dictionary:
 	var results := []
 	for nukes in [0, NUKE_STANDARD, NUKE_PERMISSIVE]:

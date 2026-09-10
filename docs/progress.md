@@ -774,16 +774,10 @@ barrier now gates it, as it gates the real game).
 
 Full regression green: 219 checks across 16 probes.
 
-**Open design item (review finding 5, deferred):** GDD §6 — "Power still
-has to be manufactured and deployed during the new attempt. Do not award
-permanent unexplained damage or health for each death." The ROVER line's
-physical bonuses (max hp / speed) are re-applied free at every attempt
-boot (the scene reloads per attempt). Making them a *cost* (e.g. cargo
-spent on deployment) would change the scrap economy the five-attempt
-proof depends on (the model spends scrap only on buildings + the mech),
-so this needs a deliberate economy decision before implementation.
-Status quo: knowledge persists, stats re-derive per attempt, no
-accumulation.
+**Open design item (review finding 5):** deferred at M16, **resolved in
+M18** — the user chose *cargo cost on deployment*: each attempt boots at
+base stats, and researched ROVER-line blueprints deploy in-run for cargo
+equal to their engram cost.
 
 ## M17 — the 3D game is the game (v1)
 
@@ -793,3 +787,36 @@ the project opens the 3D Chronolith; the 2D prototype remains intact at
 covers it).
 
 Full regression green: v1 219 checks across 16 probes + 2D smoke 71.
+
+## M18 — manufactured power: research persists, stats deploy (finding 5)
+
+GDD §6 — "Power still has to be manufactured and deployed during the new
+attempt. Do not award permanent unexplained damage or health for each
+death." The user chose the resolution: **cargo cost on deployment**.
+
+- Each attempt boots the rover at BASE stats (100 hp, 9.0 speed, 1.0 s
+  ram recharge, 2.6 m harvest radius). Knowledge (the researched
+  blueprints) persists across attempts — that is the engram loop.
+- **V deploys** the next researched ROVER node in chain order (r1 Heavy
+  Chassis +50 hp → r2 Ion Coils +1.5 speed → r3 Ram Capacitor 1.0 s →
+  r4 Mag Coil +1.5 m), costing its engram value in cargo, once per
+  attempt. Deployment raises the ceiling but does not heal.
+- The **crystal shield (f3) stays boot-applied** — GDD §5: the world
+  reset physically restores the prison, so the shield is reset state,
+  not manufactured power. The TEMPORAL line is an ability, untouched.
+- **Mech transform resets the hp pool to 250** (the mech is its own
+  hull); deploying into/onto the mech is refused, and a saved mech run
+  restores at the mech pool. Deployment records persist in the save
+  (no re-deploy of a consumed node; cargo not re-charged).
+- `apply_research` now treats each node's effect dict as PARTIAL — a
+  node without a key no longer clobbers an earlier deployment's value
+  (the m6 probe caught a real clobber: r4 reset r3's ram recharge).
+- **Model:** the deployment is now a SCRAP sink in `simulate_attempt`
+  (chain order, deploy earliest, reserving `mech_build_cost()` while
+  the mech is researched-but-unbuilt — the only scrap race that gates
+  the win). The five-attempt proof re-verified: earliest win is still
+  attempt 5; the sink changes survivability, not the barrier schedule.
+- `progression-traces.json` re-exported (catalog now carries the deploy
+  policy); `docs/progression-model.md` limitation 3 updated.
+
+Full regression green: v1 238 checks across 16 probes + 2D smoke 71.

@@ -548,6 +548,9 @@
 				"balance_end": 0,
 				"blocked_wave": 6,
 				"cleared": 5,
+				"deployed": [
+					"r1"
+				],
 				"earned_end": 5,
 				"mech_built": false,
 				"nukes_used": {},
@@ -565,11 +568,16 @@
 						"wave_after": 3
 					},
 					{
+						"cost": 1,
+						"id": "deploy_r1",
+						"wave_after": 3
+					},
+					{
 						"id": "t2",
 						"wave_after": 5
 					}
 				],
-				"scrap_end": 36,
+				"scrap_end": 35,
 				"spent_end": 5,
 				"won": false
 			},
@@ -581,12 +589,26 @@
 				"balance_end": 2,
 				"blocked_wave": 10,
 				"cleared": 9,
+				"deployed": [
+					"r1",
+					"r2"
+				],
 				"earned_end": 14,
 				"mech_built": false,
 				"nukes_used": {},
 				"purchases": [
 					{
+						"cost": 1,
+						"id": "deploy_r1",
+						"wave_after": 0
+					},
+					{
 						"id": "r2",
+						"wave_after": 2
+					},
+					{
+						"cost": 2,
+						"id": "deploy_r2",
 						"wave_after": 2
 					},
 					{
@@ -598,7 +620,7 @@
 						"wave_after": 7
 					}
 				],
-				"scrap_end": 60,
+				"scrap_end": 57,
 				"spent_end": 12,
 				"won": false
 			},
@@ -610,12 +632,27 @@
 				"balance_end": 0,
 				"blocked_wave": 14,
 				"cleared": 13,
+				"deployed": [
+					"r1",
+					"r2",
+					"r3"
+				],
 				"earned_end": 27,
 				"mech_built": true,
 				"nukes_used": {},
 				"purchases": [
 					{
 						"id": "r2",
+						"wave_after": 0
+					},
+					{
+						"cost": 1,
+						"id": "deploy_r1",
+						"wave_after": 0
+					},
+					{
+						"cost": 2,
+						"id": "deploy_r2",
 						"wave_after": 0
 					},
 					{
@@ -631,11 +668,16 @@
 						"wave_after": 9
 					},
 					{
+						"cost": 4,
+						"id": "deploy_r3",
+						"wave_after": 9
+					},
+					{
 						"id": "x2",
 						"wave_after": 13
 					}
 				],
-				"scrap_end": 76,
+				"scrap_end": 69,
 				"spent_end": 27,
 				"won": false
 			},
@@ -647,10 +689,25 @@
 				"balance_end": 4,
 				"blocked_wave": 18,
 				"cleared": 17,
+				"deployed": [
+					"r1",
+					"r2",
+					"r3"
+				],
 				"earned_end": 44,
 				"mech_built": true,
 				"nukes_used": {},
 				"purchases": [
+					{
+						"cost": 1,
+						"id": "deploy_r1",
+						"wave_after": 0
+					},
+					{
+						"cost": 2,
+						"id": "deploy_r2",
+						"wave_after": 0
+					},
 					{
 						"id": "x1",
 						"wave_after": 2
@@ -664,11 +721,16 @@
 						"wave_after": 9
 					},
 					{
+						"cost": 4,
+						"id": "deploy_r3",
+						"wave_after": 9
+					},
+					{
 						"id": "x2",
 						"wave_after": 13
 					}
 				],
-				"scrap_end": 100,
+				"scrap_end": 93,
 				"spent_end": 40,
 				"won": false
 			},
@@ -680,6 +742,12 @@
 				"balance_end": 17,
 				"blocked_wave": -1,
 				"cleared": 20,
+				"deployed": [
+					"r1",
+					"r2",
+					"r3",
+					"r4"
+				],
 				"earned_end": 64,
 				"mech_built": true,
 				"nukes_used": {},
@@ -689,11 +757,31 @@
 						"wave_after": 0
 					},
 					{
+						"cost": 1,
+						"id": "deploy_r1",
+						"wave_after": 0
+					},
+					{
+						"cost": 2,
+						"id": "deploy_r2",
+						"wave_after": 0
+					},
+					{
+						"cost": 4,
+						"id": "deploy_r3",
+						"wave_after": 1
+					},
+					{
+						"cost": 6,
+						"id": "deploy_r4",
+						"wave_after": 2
+					},
+					{
 						"id": "mech",
 						"wave_after": 3
 					}
 				],
-				"scrap_end": 118,
+				"scrap_end": 105,
 				"spent_end": 47,
 				"won": true
 			},

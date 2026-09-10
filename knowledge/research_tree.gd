@@ -1,8 +1,10 @@
 class_name ResearchTree
 extends RefCounted
 ## M3/M6: deterministic research tree. Engrams are the meta currency;
-## effects apply to newly built/spawned physical gear (and the next
-## attempt's body). M6: five lines, 14 nodes, total depth 45 engrams
+## effects apply to newly built/spawned physical gear. M18 (GDD §6): the
+## ROVER line's body stats are not free — each researched node deploys
+## in-run once per attempt for cargo equal to its engram cost.
+## M6: five lines, 14 nodes, total depth 45 engrams
 ## (= the wave-16 barrier threshold: a full catalog spend runs out
 ## exactly when the deepest barrier hits).
 
@@ -70,6 +72,10 @@ const NODES := {
 		"effect": {"mech_unlock": 1}, "desc": "Unlocks the Hybrid Mech (T: build, 8 scrap)",
 	},
 }
+
+# M18: ROVER deployment order (chain order); cost of deploying a node =
+# its engram cost in cargo, paid once per attempt (GDD §6).
+const ROVER_DEPLOY_ORDER := ["r1", "r2", "r3", "r4"]
 
 # Grouped by line so the research UI can page 7 / 7.
 const ORDER := [

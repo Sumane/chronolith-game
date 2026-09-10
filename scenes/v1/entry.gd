@@ -50,6 +50,8 @@ var nuke_charge := 1
 var _nuked_this_wave := false
 var _sealed_wave := 0
 var _sealed_need := 0
+# M18: ROVER nodes deployed this attempt (power is manufactured per attempt)
+var deployed_rover: Array = []
 var _last_win_was_full := false
 var _warden_event_t := 0.0
 var profile_recovered := false
@@ -130,8 +132,12 @@ func _ready() -> void:
 	director.knowledge = knowledge  # M16: barrier schedule is enforced live
 	profile = ProfileStore.new()
 	_load_profile()
+	# M18: the body starts at base stats — researched ROVER blueprints are
+	# deployed in-run for cargo (GDD §6: "Power still has to be manufactured
+	# and deployed during the new attempt"). Only the crystal's shield is a
+	# reset-state property (GDD §5: the world reset physically restores the
+	# prison), so it still applies at boot.
 	var efs0: Dictionary = knowledge.applied()
-	rig.apply_research(efs0)
 	# M6 f3: Aegis Membrane — the next attempt's crystal starts shielded
 	var shield: int = int(efs0.get("crystal_shield", 0.0))
 	if shield > 0:
@@ -213,6 +219,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_fire_nuke()
 	elif event.is_action_pressed("mech_transform"):
 		_try_transform_mech()
+	elif event.is_action_pressed("deploy_rover"):
+		_deploy_next_rover()
 	elif event.is_action_pressed("debug_golem"):
 		_spawn_golem()
 	elif event.is_action_pressed("time_burst"):
@@ -271,6 +279,7 @@ func _register_actions() -> void:
 	_add_key("ram", KEY_SHIFT)
 	_add_key("nuke", KEY_F)
 	_add_key("mech_transform", KEY_T)
+	_add_key("deploy_rover", KEY_V)
 	_add_key("debug_golem", KEY_B)
 	_add_key("time_burst", KEY_C)
 	_add_key("sell_build", KEY_Z)
@@ -443,6 +452,17 @@ func _resume_checkpoint() -> void:
 		# crystal integrity <= 0) respawns whole so the checkpoint is playable.
 		if bool(_saved_attempt.get("mech", false)):
 			rig.transform_to_mech()
+		# M18: deployed ROVER systems persist within the attempt (already
+		# paid, the node cannot be deployed again). A run saved in mech mode
+		# restores at the mech pool (the transform resets it) — the bonuses
+		# are applied only for a run saved in rover mode.
+		var dep: Array = _saved_attempt.get("deployed", [])
+		deployed_rover = dep.duplicate()
+		if not bool(_saved_attempt.get("mech", false)):
+			for d_id in dep:
+				var dn: Dictionary = ResearchTree.NODES.get(str(d_id), {})
+				if dn.size() > 0:
+					rig.apply_research(dn.get("effect", {}))
 		var rhp := int(_saved_attempt.get("rover_hp", 0))
 		if rhp <= 0:
 			rhp = rig.max_hp
@@ -486,6 +506,7 @@ func _profile_data() -> Dictionary:
 			"endless": bool(director.endless),
 			"deposits": _deposit_flags(),
 			"buildings": build.snapshot(),
+			"deployed": deployed_rover.duplicate(),
 		}
 	else:
 		d["attempt"] = {}
@@ -527,6 +548,40 @@ func _fire_nuke() -> void:
 
 func debug_nuke() -> void:
 	_fire_nuke()
+
+func _deploy_next_rover() -> void:
+	# M18: GDD §6 — knowledge persists, power is manufactured in-run. Each
+	# researched ROVER node deploys once per attempt, for cargo equal to its
+	# engram cost, in chain order.
+	if not flow.running:
+		return
+	if rig.mech_mode:
+		# the mech frame is its own hull — the transform resets the hp pool,
+		# so rover systems are not deployed into (or onto) the mech
+		_set_banner("THE MECH FRAME TAKES NO ROVER SYSTEMS")
+		return
+	var node_id := ""
+	for n in ResearchTree.ROVER_DEPLOY_ORDER:
+		if knowledge.researched.has(n) and not deployed_rover.has(n):
+			node_id = n
+			break
+	if node_id == "":
+		if not knowledge.researched.has(ResearchTree.ROVER_DEPLOY_ORDER[0]):
+			_set_banner("RESEARCH THE ROVER LINE FIRST (G)")
+		else:
+			_set_banner("ALL ROVER SYSTEMS DEPLOYED")
+		return
+	var nd: Dictionary = ResearchTree.NODES[node_id]
+	var cost: int = int(nd["cost"])
+	if cargo < cost:
+		_set_banner("%s NEEDS %d CARGO (HAVE %d)" % [str(nd["name"]).to_upper(), cost, cargo])
+		return
+	cargo -= cost
+	deployed_rover.append(node_id)
+	rig.apply_research(nd["effect"])
+	_set_banner("DEPLOYED %s (-%d CARGO)" % [str(nd["name"]), cost])
+	_refresh_hud()
+	_save_profile()
 
 func _try_transform_mech() -> void:
 	if rig.mech_mode:

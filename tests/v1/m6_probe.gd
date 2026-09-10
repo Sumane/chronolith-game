@@ -24,6 +24,13 @@ func _wait(n: int) -> void:
 		i += 1
 		await get_tree().physics_frame
 
+func _press_v() -> void:
+	var e := InputEventKey.new()
+	e.keycode = KEY_V
+	e.physical_keycode = KEY_V
+	e.pressed = true
+	Input.parse_input_event(e)
+
 func check(label: String, cond: bool) -> void:
 	if cond:
 		_ok += 1
@@ -175,12 +182,12 @@ func _run() -> void:
 	crystal = arena.crystal
 	check("persist: crystal starts shielded (75/75) from f3",
 		crystal.integrity == 75 and crystal.max_integrity == 75)
-	var efs: Dictionary = entry.knowledge.applied()
-	check("persist: rover body effects (hp 150, speed 10.5, ram cd 2.0, harvest 4.1)",
-		rig.max_hp == 150
-		and absf(rig.speed - (9.0 + float(efs.get("rover_speed", 0.0)))) < 0.01
-		and absf(rig._ram_recharge - 1.0) < 0.001
-		and absf(rig._harvest_radius - 4.1) < 0.001)
+	check("persist: crystal shield is reset state (f3), rover body at base (M18: deploy in-run)",
+		crystal.integrity == 75 and crystal.max_integrity == 75
+		and rig.max_hp == 100
+		and absf(rig.speed - 9.0) < 0.01
+		and absf(rig._ram_recharge - 0.0) < 0.001
+		and absf(rig._harvest_radius - 2.6) < 0.001)
 	entry.build.start_build("turret")
 	rig.debug_set_aim(Vector3(5.5, arena.height_at(5.5, 3.5) + 0.3, 3.5))
 	var tr2: Dictionary = entry.build.commit()
@@ -188,16 +195,27 @@ func _run() -> void:
 		bool(tr2.get("ok", false)) and int(tr2["building"].dmg) == 25
 		and absf(float(tr2["building"].cooldown) - 0.25) < 0.001
 		and absf(float(tr2["building"].range_m) - 12.0) < 0.001)
-	# rover line: one real harvest (enlarged radius must reach the deposit),
-	# then fund the transform directly — deposits are single-use and four
-	# of them cannot bridge 2 -> 8 scrap in a probe
+	# rover line: M18 — deploy the researched ROVER nodes in-run (V, real
+	# input path) and verify the manufactured stats, then one real harvest
+	# at the enlarged radius; the transform is funded directly (deposits are
+	# single-use and four cannot bridge 2 -> 8 scrap in a probe)
+	entry.cargo = 13
+	for _d in 4:
+		_press_v()
+		await _wait(3)
+	check("rover line: 4 deployments (13 cargo) -> hp 150 / speed 10.5 / ram 1.0 / harvest 4.1",
+		entry.cargo == 0
+		and entry.deployed_rover == ["r1", "r2", "r3", "r4"]
+		and rig.max_hp == 150
+		and absf(rig.speed - 10.5) < 0.01
+		and absf(rig._ram_recharge - 1.0) < 0.001
+		and absf(rig._harvest_radius - 4.1) < 0.001)
 	rig.debug_set_pos(Vector3(7.2, arena.height_at(7.2, 4.0) + 0.3, 4.0))
 	var c0: int = entry.cargo
 	rig.debug_interact(0.9)
 	await _wait(80)
 	var c1: int = entry.cargo
-	print("  diag mech: cargo %d -> %d after 1 harvest, radius %.1f" % [c0, c1, rig._harvest_radius])
-	check("rover line: harvest works at the enlarged 4.1 m radius",
+	check("rover line: harvest works at the deployed 4.1 m radius",
 		c1 == c0 + 1)
 	entry.cargo = 8
 	entry._try_transform_mech()

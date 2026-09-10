@@ -69,7 +69,14 @@ func _run() -> void:
 	var dep0: Deposit = arena1.dep_group.get_children()[0]
 	for i in 5:
 		dep0.take()                      # deplete it (starts at 5)
+	# M18: deploy r1 in rover mode, then transform — the transform resets
+	# the hp pool, the deployment record must survive the round-trip
+	e1.knowledge.researched["r1"] = true
+	e1.cargo = 50
+	e1._deploy_next_rover()
+	check("deploy before transform: 150 hp, -1 cargo", rig1.max_hp == 150 and e1.cargo == 49)
 	rig1.transform_to_mech()
+	check("transform resets the pool to 250", rig1.max_hp == 250)
 	rig1.hp = 77
 	e1.nuke_charge = 3
 	arena1.crystal.integrity = 31
@@ -96,6 +103,13 @@ func _run() -> void:
 	check("resume keeps nuke charges", e2.nuke_charge == 3)
 	check("resume restores mech mode", rig2.mech_mode == true)
 	check("resume restores rover hp 77", rig2.hp == 77)
+	# M18: the deployment record round-trips; a saved mech run restores at
+	# the mech pool (no 300 = 250 + 50) and the node cannot be re-deployed
+	check("resume keeps the deployment record", e2.deployed_rover == ["r1"])
+	check("resume: saved mech run restores at 250 (transform pool)", rig2.max_hp == 250)
+	var c_before: int = e2.cargo
+	e2._deploy_next_rover()
+	check("resume: no re-deploy of a consumed node", rig2.max_hp == 250 and e2.cargo == c_before)
 	check("resume restores crystal integrity 31", arena2.crystal.integrity == 31)
 	var bs: Array = e2.build.snapshot()
 	check("resume restores both buildings", bs.size() == 2)

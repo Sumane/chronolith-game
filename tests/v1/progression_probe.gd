@@ -31,6 +31,13 @@ func _wait(n: int) -> void:
 func _wait_s(sec: float) -> void:
 	await (get_tree().create_timer(sec)).timeout
 
+func _press(key: Key) -> void:
+	var e := InputEventKey.new()
+	e.keycode = key
+	e.physical_keycode = key
+	e.pressed = true
+	Input.parse_input_event(e)
+
 func _wipe() -> void:
 	for pth in ["chronolith_v1_profile.json", "chronolith_v1_profile.json.bak", "chronolith_v1_profile.json.tmp"]:
 		var gp := ProjectSettings.globalize_path("user://" + pth)
@@ -172,6 +179,26 @@ func _run() -> void:
 		e.call("damage", 9999)
 	await _wait_s(2.5)
 	check("live: normal clear awards the engram", int(k.earned_total) == 1 and d.state == d.State.PREP and d.wave == 3)
+
+	# live M18: knowledge persists, power is manufactured in-run (V deploys
+	# the next researched ROVER node for cargo = its engram cost)
+	k.researched["r1"] = true
+	k.researched["r2"] = true
+	k.researched["r3"] = true
+	e1.cargo = 5
+	_press(KEY_V)
+	await _wait(6)
+	check("live: deploy r1 (1 cargo) -> max_hp 150",
+		e1.rig.max_hp == 150 and e1.cargo == 4 and e1.deployed_rover == ["r1"])
+	_press(KEY_V)
+	await _wait(6)
+	check("live: deploy r2 (2 cargo) -> speed 10.5",
+		absf(e1.rig.speed - 10.5) < 0.01 and e1.cargo == 2)
+	e1.cargo = 0
+	_press(KEY_V)
+	await _wait(6)
+	check("live: deploy refused below cost (r3 needs 4, have 0)",
+		e1.deployed_rover.size() == 2 and e1.hud.banner_label.text.contains("NEEDS 4 CARGO"))
 
 	# live seal: wave 6 sits under barrier A (threshold 6); nothing carried
 	d.wave = 6

@@ -218,13 +218,13 @@ func _run() -> void:
 	director = entry.get_node("WaveDirector")
 	director.wave_plan = [3, 4, 5]  # prototype mode: campaign is 20 waves
 	director.prep_left = WaveDirector.PREP_TIME
-	# the body resets to the starter rover, but persisted blueprint effects
-	# (r1: +50 hp, r2: +1.5 speed) re-apply on boot — knowledge outlives the body
-	var efs: Dictionary = entry.knowledge.applied()
-	check("new attempt: starter rover body, mech blueprint persists",
+	# M18: the body resets to the starter rover at BASE stats — knowledge
+	# (researched blueprints) persists, but power is manufactured in-run
+	# (V: deploy, cargo cost). No free re-apply at boot.
+	check("new attempt: starter rover at base stats, knowledge persists",
 		not rig.mech_mode
-		and rig.max_hp == 100 + int(efs.get("rover_hp", 0.0))
-		and absf(rig.speed - (9.0 + float(efs.get("rover_speed", 0.0)))) < 0.01
+		and rig.max_hp == 100
+		and absf(rig.speed - 9.0) < 0.01
 		and rig.cam_dist() == 6.5 and entry.knowledge.researched.has("mech"))
 
 	# ---- rover-heavy route: ledger arithmetic on the real Knowledge code ----

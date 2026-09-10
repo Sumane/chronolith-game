@@ -216,11 +216,15 @@ func debug_ram() -> bool:
 	return ram()
 
 func apply_research(efs: Dictionary) -> void:
+	# M18: deployment manufactures power — it raises the ceiling but does
+	# not heal (no free top-up mid-fight). Each node's effect dict is
+	# PARTIAL, so absent keys must not clobber earlier deployments.
 	max_hp += int(efs.get("rover_hp", 0.0))
-	hp = max_hp
 	speed += float(efs.get("rover_speed", 0.0))
-	_ram_recharge = float(efs.get("ram_recharge", 0.0))
-	_harvest_radius = HARVEST_RADIUS + float(efs.get("harvest_range", 0.0))
+	if efs.has("ram_recharge"):
+		_ram_recharge = maxf(_ram_recharge, float(efs["ram_recharge"]))
+	if efs.has("harvest_range"):
+		_harvest_radius = HARVEST_RADIUS + float(efs["harvest_range"])
 
 # ------------------------------------------------------------- M5 mech ------
 
