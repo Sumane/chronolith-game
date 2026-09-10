@@ -784,3 +784,12 @@ proof depends on (the model spends scrap only on buildings + the mech),
 so this needs a deliberate economy decision before implementation.
 Status quo: knowledge persists, stats re-derive per attempt, no
 accumulation.
+
+## M17 — the 3D game is the game (v1)
+
+`run/main_scene` now points at `res://scenes/v1/entry.tscn`. Launching
+the project opens the 3D Chronolith; the 2D prototype remains intact at
+`res://core/main.tscn` (run it explicitly, `tests/smoke_test.tscn` still
+covers it).
+
+Full regression green: v1 219 checks across 16 probes + 2D smoke 71.

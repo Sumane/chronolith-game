@@ -7,7 +7,7 @@ config_version=5
 
 config/name="CHRONOLITH"
 config/description="A dying alien's mind inside a NASA rover defends a time-bending crystal against an invading armada."
-run/main_scene="res://core/main.tscn"
+run/main_scene="res://scenes/v1/entry.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.svg"
 
