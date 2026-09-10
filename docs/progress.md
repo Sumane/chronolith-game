@@ -820,3 +820,21 @@ death." The user chose the resolution: **cargo cost on deployment**.
   policy); `docs/progression-model.md` limitation 3 updated.
 
 Full regression green: v1 238 checks across 16 probes + 2D smoke 71.
+
+## Playtest fix 3 — grounded horizon (floating-ground report)
+
+The 500 m plain under the arena was a FLAT COLOUR: beyond the arena edge
+the ground faded into the fog colour, which matched the sky's mirrored
+below-horizon gradient — the horizon read as an inverted sky and the
+arena as a floating slab (the user's "inverted ground / everything is
+floating").
+
+- The plain now carries a 256 px textured tile (256 px = 32 m, 4 m grid,
+  dimmer than the arena, repeated across the 500 m field) so the ground
+  stays legible ground to the fog line.
+- The plain sits at y = -1.8 (was -2.5): near the terrain's low edge, so
+  the arena reads as raised ground over a closed plain, not a see-through
+  gap.
+- `terrain_probe` now asserts the plain's texture and position (5 checks).
+
+Full regression green: v1 240 checks across 16 probes + 2D smoke 71.

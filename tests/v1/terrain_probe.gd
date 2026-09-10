@@ -51,13 +51,24 @@ func _run() -> void:
 		has_grid = tex is ImageTexture and (tex as ImageTexture).get_image().get_size() == Vector2i(640, 640)
 	check("terrain carries a 640 px grid texture (16 px per metre tile)", has_grid)
 
-	# a wide plain under the heightmap extends the horizon
+	# a wide, TEXTURED plain under the heightmap extends the horizon
+	# (playtest fix 3: an untextured plain read as a sky mirror)
 	var plain_ok := false
+	var plain_tex_ok := false
+	var plain_y_ok := false
 	for c in arena.get_children():
 		if c is MeshInstance3D and (c as MeshInstance3D).mesh is PlaneMesh \
 			and ((c as MeshInstance3D).mesh as PlaneMesh).size.x >= 200.0:
 			plain_ok = true
+			plain_y_ok = (c as MeshInstance3D).position.y >= -2.0
+			var pm := (c as MeshInstance3D).material_override
+			if pm is StandardMaterial3D:
+				var ptex := (pm as StandardMaterial3D).albedo_texture
+				plain_tex_ok = ptex is ImageTexture \
+					and (ptex as ImageTexture).get_image().get_size() == Vector2i(256, 256)
 	check("500 m plain extends the horizon past the arena edge", plain_ok)
+	check("plain carries a 256 px ground texture (reads as ground, not sky)", plain_tex_ok)
+	check("plain sits near the terrain's low edge (no see-through gap)", plain_y_ok)
 
 	# fog dense enough to fade the 40 m edge into the plain
 	var we: WorldEnvironment = null

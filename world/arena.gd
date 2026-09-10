@@ -88,6 +88,38 @@ func _terrain_material() -> StandardMaterial3D:
 	m.roughness = 1.0
 	return m
 
+## The plain beyond the arena: a 256 px tile covering 32 m (8 px per
+## metre) with a coarser 4 m grid — clearly ground, dimmer than the arena,
+## repeated across the 500 m field so the horizon never reads as sky.
+func _plain_texture() -> ImageTexture:
+	const RES := 256
+	const PER_M := 8
+	const CELL := 32  # 4 m grid cells
+	var img := Image.create(RES, RES, false, Image.FORMAT_RGB8)
+	var base := Color(0.22, 0.13, 0.09)
+	var line := Color(0.36, 0.22, 0.14)
+	for y in RES:
+		for x in RES:
+			var r := fmod(sin(float(x) * 12.9898 + float(y) * 78.233) * 43758.5453, 1.0)
+			r = absf(r)
+			var v := 1.0 + (r - 0.5) * 0.24
+			var c := Color(base.r * v, base.g * v, base.b * v)
+			if x % CELL == 0 or y % CELL == 0:
+				c = line
+			img.set_pixel(x, y, c)
+	# (tiling is driven by the 3D material's texture_repeat_enabled +
+	# u_tile/v_tile — the texture's own repeat mode is a 2D-canvas thing)
+	return ImageTexture.create_from_image(img)
+
+func _plain_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = _plain_texture()
+	m.texture_repeat_enabled = true
+	m.u_tile = 500.0 / 32.0
+	m.v_tile = 500.0 / 32.0
+	m.roughness = 1.0
+	return m
+
 ## The whole 40 m arena in one 640 px image (16 px per metre tile): base
 ## Mars tone with deterministic speckle noise plus a bright line at every
 ## tile edge, so the surface reads as 1 m square placeholder tiles and
@@ -127,13 +159,16 @@ func _build_environment() -> void:
 	world.environment = env
 	add_child(world)
 	# wide plain under the heightmap: looking over the arena edge meets a
-	# fog-shrouded Mars plain, not the void
+	# fog-shrouded Mars plain, not the void. Playtest fix 3: the plain is
+	# TEXTURED (untextured it read as a sky mirror — the inverted ground)
+	# and sits near the terrain's low edge so the arena reads as raised
+	# ground, not a floating slab over a see-through gap.
 	var gp := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
 	plane.size = Vector2(500.0, 500.0)
 	gp.mesh = plane
-	gp.material_override = _mat(Color(0.30, 0.17, 0.12))
-	gp.position.y = -2.5
+	gp.material_override = _plain_material()
+	gp.position.y = -1.8
 	add_child(gp)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-55.0, -30.0, 0.0)
