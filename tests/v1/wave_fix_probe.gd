@@ -77,6 +77,9 @@ func _run() -> void:
 	check("cleared wave advances the relay to wave 4", d.wave == 4 and d.state == d.State.PREP)
 
 	# --- finale wave 20: WAVE_PLAN[19] = 14 grunts + Vrax + Golem
+	# M16: wave 20 sits under the wave-18 barrier (45 lifetime engram) —
+	# bank the knowledge so the live path reaches the finale.
+	e1.knowledge.earned_total = 45
 	d.wave = 20
 	d.state = d.State.PREP
 	d.early_start()

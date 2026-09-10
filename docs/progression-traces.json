@@ -511,15 +511,19 @@
 		"1": 5,
 		"2": 5
 	},
-	"mechanic_param": {
-		"build_cost": 8,
+	"mech_node": {
 		"cost": 3,
-		"name": "Hybrid Mech (M5 param)",
+		"desc": "Unlocks the Hybrid Mech (T: build, 8 scrap)",
+		"effect": {
+			"mech_unlock": 1
+		},
+		"line": "MECH",
+		"name": "Hybrid Chassis",
 		"req": [
 			"r2"
 		]
 	},
-	"model": "M4 progression model (GDD reference schedule + real v1 rules)",
+	"model": "M4 progression model (GDD barrier schedule enforced live, M16 + real v1 data)",
 	"reference_table": {
 		"clears": [
 			5,

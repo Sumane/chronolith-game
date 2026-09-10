@@ -671,3 +671,116 @@ corpses' death timer.
 
 Full regression green: m1-m8 142 + input 16 + terrain 3 + progression
 10 + sell 17 + hpbar 13 + 2D smoke 71.
+
+## M13 — live wave accounting + real combat routing (v1)
+
+Two live-path defects from the v1 review:
+
+- **M13a — waves could not clear correctly.** `alive` budgeted only the
+  grunts, so a Warden/Golem/Vrax standing on the field never blocked the
+  relay. `WaveDirector._start_assault` now budgets every spawn
+  (`alive = size + wcnt + gcnt`) — a wave cannot clear while a boss is
+  alive. Vrax became **mech-only**: non-mech damage (including piercing
+  chip) is fully ignored; only `mech=true` projectiles land. The old
+  chip divisor is deleted — the Hybrid Chassis is the one thing that
+  matters against him.
+- **M13b — enemy melee hit nothing.** Grunts/wardens targeted the Rover
+  *body* (a collider child) which has no `damage()`; hp lives on
+  `PlayerRig`. Enemy attacks now hop to the hp owner (the rig) — warden
+  melee and charge, golem ram and grunt bite all land on
+  `PlayerRig.damage()`, which applies mech armor in mech mode and feeds
+  the HUD `hp_changed` bar.
+
+New `tests/v1/wave_fix_probe.tscn` (14 checks): a live wave 3 (real
+prep → early start → staggered spawns) reaches the full roster of 5
+grunts + Warden, and `alive` stays 6 until the Warden dies; the finale
+wave 20 spawns 14 grunts + Vrax + Golem with `alive` = 16 and only
+clears after **all three** kinds are dead. `tests/v1/rover_damage_probe.tscn`
+(7 checks) exercises the normal combat path — a live wave-1 grunt and a
+live wave-3 Warden are teleported onto the player body and their real
+melee/charge damage the rig (100→80, 88→76) with the HUD bar tracking;
+a directly-spawned Golem rams for the full 40. m7's Vrax assertions
+were updated to the mech-only contract (non-mech pierce ignored, mech
+heavy lands).
+
+Full regression green: m1-m8 142 + input 16 + terrain 3 + progression
+10 + sell 17 + hpbar 13 + wave_fix 14 + rover_damage 7.
+
+## M15 — save integrity: full attempt state (v1)
+
+The checkpoint previously stored only attempt id / wave / scrap, so a
+resume rebuilt an empty arena and a dead player.
+
+- The `ProfileStore` attempt block now round-trips **cargo, crystal
+  integrity, rover hp, mech mode, nuke charges, endless flag, depleted
+  deposits** and the **building snapshot** (type + cell + current hp).
+- `BuildService.snapshot()/restore()` rebuild walls/turrets on resume
+  (turret re-wired to the combat service); `Arena` exposes its deposit
+  group as a member so depletion flags can be restored and re-rendered.
+- Dead-end edge: a run that saved *after* the crystal or rover died
+  respawns both whole (integrity → max, hp → max) instead of booting
+  into an instant loss.
+
+New `tests/v1/save_probe.tscn` (18 checks): boot a run, place a wall +
+turret (damage-chipped), deplete a deposit, transform to mech at 77 hp,
+bank 3 nukes, drop the crystal to 31, jump to endless wave 7 and save;
+a fresh boot restores every field exactly (building cells, hp, occupied
+cells, deposit state). Second pass: save with a destroyed crystal +
+dead rover and verify the respawn-whole rule on the next boot.
+
+Full regression green: + save 18 (211 checks across 16 probes).
+
+## M16 — progression is live, the model is honest (v1)
+
+The review's core objection: the game enforced none of the GDD
+progression, and the simulator was presented as an exhaustive search
+that it was not.
+
+- **The barrier schedule is live.** `ProgressionModel.required_threshold()`
+  is now the shared source of truth: `WaveDirector._start_assault`
+  (both the timer and early-start paths) seals a wave until lifetime
+  knowledge (`Knowledge.earned_total` — receipts persist across
+  attempts) reaches the threshold. A sealed wave ends the attempt with
+  a new flow result `sealed` ("WAVE n SEALED — THE CRYSTAL HOLDS AT x
+  LIFETIME ENGRAM"); the next attempt starts with more carried
+  knowledge. This is exactly the five-attempt structure the model
+  proved (blocked at 6/10/14/18 with 5/14/26/42 carried).
+- **Nuked waves award no engram.** The nuke bypasses the wave instead
+  of clearing it: `_fire_nuke` flags the wave, and
+  `entry._on_wave_cleared` skips the receipt and the banner
+  ("WAVE n BYPASSED BY NUKE — NO ENGRAM"). The GDD reading is now the
+  shipped rule.
+- **The model reads real data.** Campaign length = live
+  `WaveDirector.WAVE_PLAN.size()` (the duplicated constant is gone);
+  the mech gate = the real catalog node (`mech`, cost 3, req `r2`) +
+  the real `MechData.BUILD_COST` (8) — the parameterized `MECH`
+  constant is gone.
+- **Honest search.** Code and doc no longer claim a "mixed builds"
+  dimension: the search varies exactly nukes × respec × holdout (18
+  configurations, fixed deterministic order), and the doc explains why
+  line choice is not a variable — barriers gate on lifetime EARNED, so
+  which line is bought cannot change a clear.
+- `docs/progression-model.md` updated: schedule is shipped and
+  enforced; limitations 1/5/7 closed; search space restated.
+
+The progression probe now boots the scene (19 checks): the offline
+suite (reference reproduction, 18-config search, infeasibility, nuke
+invariance, respec, mech gate, catalog depth, real-data wiring) plus
+live-path checks — wave 1 nuked → no engram; wave 2 cleared normally →
++1 engram; wave 6 sealed below threshold (BLOCKED, no spawn, flow
+result `sealed`); wave 6 opens once the threshold is carried.
+`wave_fix_probe` banks 45 knowledge before its live finale (the wave-18
+barrier now gates it, as it gates the real game).
+
+Full regression green: 219 checks across 16 probes.
+
+**Open design item (review finding 5, deferred):** GDD §6 — "Power still
+has to be manufactured and deployed during the new attempt. Do not award
+permanent unexplained damage or health for each death." The ROVER line's
+physical bonuses (max hp / speed) are re-applied free at every attempt
+boot (the scene reloads per attempt). Making them a *cost* (e.g. cargo
+spent on deployment) would change the scrap economy the five-attempt
+proof depends on (the model spends scrap only on buildings + the mech),
+so this needs a deliberate economy decision before implementation.
+Status quo: knowledge persists, stats re-derive per attempt, no
+accumulation.

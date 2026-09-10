@@ -46,6 +46,10 @@ var attempt_id := ""
 var research_screen: ResearchScreen
 var research_open := false
 var nuke_charge := 1
+# M16: a nuke bypasses the wave instead of clearing it — no engram for it
+var _nuked_this_wave := false
+var _sealed_wave := 0
+var _sealed_need := 0
 var _last_win_was_full := false
 var _warden_event_t := 0.0
 var profile_recovered := false
@@ -123,6 +127,7 @@ func _ready() -> void:
 	build.aim_source = rig
 	add_child(build)
 	knowledge = Knowledge.new()
+	director.knowledge = knowledge  # M16: barrier schedule is enforced live
 	profile = ProfileStore.new()
 	_load_profile()
 	var efs0: Dictionary = knowledge.applied()
@@ -160,6 +165,7 @@ func _wire() -> void:
 	arena.crystal.destroyed_signal.connect(func() -> void: flow.on_crystal_lost())
 	director.wave_started.connect(_on_wave_started)
 	director.wave_cleared.connect(_on_wave_cleared)
+	director.sealed.connect(_on_sealed)
 	director.warden_event.connect(_on_warden_event)
 	director.attempt_won.connect(func() -> void: flow.on_won())
 	flow.ended.connect(_on_ended)
@@ -311,7 +317,13 @@ func _on_repair(b: Node) -> void:
 		b.repair(10)
 		_set_banner("REPAIRED +10 (1 scrap)")
 
+func _on_sealed(wave: int, need: int) -> void:
+	_sealed_wave = wave
+	_sealed_need = need
+	flow.on_sealed()
+
 func _on_wave_started(wave: int, direction: String) -> void:
+	_nuked_this_wave = false
 	if int(director.wave_plan.size()) == 20:
 		if wave == 15:
 			_memory("vrax_taunt", STORY_TAUNT)
@@ -326,6 +338,12 @@ func _on_wave_started(wave: int, direction: String) -> void:
 	_set_banner("WAVE %d INBOUND FROM THE %s — HOLD THE CRYSTAL%s" % [wave, direction, warn])
 
 func _on_wave_cleared(wave: int) -> void:
+	if _nuked_this_wave:
+		# GDD nuke rule (now live, M16): a nuked wave is bypassed, not
+		# cleared — no engram, no receipt.
+		_nuked_this_wave = false
+		_set_banner("WAVE %d BYPASSED BY NUKE — NO ENGRAM" % wave)
+		return
 	var got := knowledge.grant_wave(attempt_id, wave)
 	if got:
 		_set_banner("WAVE %d CLEARED — +1 ENGRAM (G: RESEARCH)" % wave)
@@ -359,6 +377,9 @@ func _on_ended(result: String) -> void:
 			_end_label.text = "CAMPAIGN CLEAR: %d WAVES\n(completion already recorded — ending skipped)\n(R — new attempt)" % n
 		else:
 			_end_label.text = "CAMPAIGN CLEAR: %d WAVES\n(R — new attempt)" % n
+	elif result == "sealed":
+		# M16: the GDD barrier schedule — a knowledge gap, not a death
+		_end_label.text = "WAVE %d SEALED — THE CRYSTAL HOLDS AT %d LIFETIME ENGRAM\n(you carry %d — R — NEW ATTEMPT)" % [_sealed_wave, _sealed_need, knowledge.earned_total]
 	else:
 		var reason := "the crystal was destroyed" if result == "lost_crystal" else "the rover was destroyed"
 		if director.endless:
@@ -492,6 +513,7 @@ func _fire_nuke() -> void:
 		_set_banner("NO NUKE CHARGES LEFT")
 		return
 	nuke_charge -= 1
+	_nuked_this_wave = true
 	for en in get_tree().get_nodes_in_group("enemy"):
 		# M8: the boss is out of scope — the mech is required to defeat Vrax
 		if en is Vrax:

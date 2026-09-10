@@ -26,9 +26,12 @@ five-attempt minimum under the represented rules and exports route traces
 - Build costs — wall/turret scrap costs mirror `BuildService.COSTS`; scrap
   economy (start 6, +6/wave) is illustrative.
 
-## Campaign schedule (GDD illustrative reference)
+## Campaign schedule (GDD — enforced live since M16)
 
-20 waves, 1 engram/clear, barriers (protected tier appears / hard-block
+The table below is the shared source of truth: the live game seals a wave
+(`WaveDirector._start_assault`) until lifetime knowledge reaches the
+threshold, and the model simulates the same gate. 20 waves (the live
+`WAVE_PLAN`), 1 engram/clear, barriers (protected tier appears / hard-block
 wave / lifetime-knowledge threshold):
 
 | Barrier | appears | blocks from | threshold |
@@ -38,16 +41,25 @@ wave / lifetime-knowledge threshold):
 | C | 12 | 14 | 28 |
 | D | 16 | 18 | 45 |
 
-A wave is clearable iff lifetime earned ≥ every active barrier threshold.
-The final wave additionally requires the mech (parameterized below).
+A wave is clearable iff lifetime earned ≥ every active barrier threshold
+(live: a wave under its threshold is *sealed* — the attempt ends; the next
+attempt carries more knowledge). The final wave additionally requires the
+mech (real data since M16: the catalog's "mech" node + `MechData.BUILD_COST`).
+A nuked wave is bypassed, not cleared — it awards no engram (live rule
+since M16, matching the model).
 
 ## Search space
 
-Nuke charges 0/1/2 × respec on/off × nuke placement (holdout 0/1/2 = walk
-away from the first k blocked waves instead of nuking them — verifies the
-greedy placement is optimal) × mixed builds (any of the three research lines
-as the counter; spend-immediately after each wave clear, the only purchase
-timing that can help, since thresholds are earned-based). 18 runs total.
+18 configurations: nuke charges 0/1/2 × respec on/off × nuke placement
+(holdout 0/1/2 = walk away from the first k blocked waves instead of nuking
+them — verifies the greedy placement is optimal), enumerated in a fixed
+deterministic order.
+
+Deliberately **not** varied: which research line is bought cannot change a
+clear — the barriers gate on lifetime EARNED, not gear — and the purchase
+policy is fixed to spend-immediately, the only timing that can help, since
+the only purchase that matters is the mech chain (hoarding can only delay
+it, never shorten it).
 
 ## Results
 
@@ -62,31 +74,34 @@ timing that can help, since thresholds are earned-based). 18 runs total.
   produces a negative balance.
 - Mech gate: the winning path buys the mech node (3 engrams, requires `r2`)
   and builds it (8 scrap) well before wave 20.
-- Catalog gap: the real v1 tree is 9 engrams deep; the wave-16 barrier needs
-  45 lifetime knowledge — **M6 must expand the research graph by ~4×**
-  (or rebalance thresholds) before the 20-wave campaign is represented by
-  real nodes.
+- Catalog depth (closed in M6): the real v1 tree is 45 engrams deep —
+  exactly the wave-16 barrier threshold.
 
 ## Model limitations
 
-1. **Schedule is illustrative.** Barriers/thresholds/wave-count are the GDD
-   reference, not shipped data; the game currently has 3 waves. M6 replaces
-   the schedule with real campaign data — the search must be re-run.
+1. ~~Schedule is illustrative~~ — **closed in M6/M16.** The 20-wave plan,
+   barriers and thresholds are shipped data: the live game seals waves under
+   their threshold, and the model reads the live `WAVE_PLAN` for the wave
+   count. The probe re-verifies the reproduction on every run.
 2. **Counter representation.** Barriers are modelled as threshold gates on
-   lifetime knowledge; the real v1 tree (6 nodes) is too shallow to be the
-   actual counter source, so purchase cost is shared but the node→counter
-   mapping is abstract. M6 maps barriers to concrete nodes.
+   lifetime knowledge. Since the barriers gate on EARNED (not gear), the
+   abstract node→counter mapping does not affect the five-attempt proof;
+   what a counter *does in combat* is a gameplay question the model cannot
+   answer (see limitation 4).
 3. **Scrap economy is illustrative** (start 6, +6/wave, lump build costs).
    Real harvest distance, deposit depletion and repair drain are not modelled.
 4. **No in-run timing.** The model is a clear-level simulation: no wave
    duration, no skill ceiling, no crystal-damage races. A path the model
    calls attainable still has to be *defended* in real time.
-5. **Mech is a parameter** (cost 3 / req `r2` / build 8), pending M5.
+5. ~~Mech is a parameter~~ — **closed in M16.** The model uses the real
+   catalog node (`mech`, cost 3, req `r2`) and the real build cost
+   (`MechData.BUILD_COST = 8`).
 6. **No endless-mode or post-20 rules** (GDD §10) — out of scope for the
    five-attempt proof.
-7. Nuke "skip one failed wave" is the GDD reading; if nukes instead heal
-   the crystal or clear an active wave mid-fight, the permissive case must
-   be re-run.
+7. ~~Nuke "skip one failed wave" is the GDD reading~~ — **settled in M16.**
+   The live rule is now exactly the model's reading: a nuke bypasses the
+   wave, which awards no engram. The permissive (2-charge) case remains in
+   the search for sensitivity only.
 
 ## Invalidation
 

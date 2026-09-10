@@ -12,10 +12,16 @@ extends RefCounted
 ## reference — the real campaign data lands in M6. See docs/progression-model.md
 ## for the limitation list.
 
-const CAMPAIGN_WAVES := 20
 const ENGRAM_PER_WAVE := 1
 
-## GDD arithmetic reference (illustrative thresholds).
+## M16: the campaign length is the REAL live plan, not a model constant —
+## the live game and the model can never drift on wave count.
+static func campaign_waves() -> int:
+	return int(WaveDirector.WAVE_PLAN.size())
+
+## GDD barrier schedule — M16: this table is the SHARED source of truth.
+## The live game enforces it (WaveDirector._start_assault seals a wave until
+## lifetime knowledge reaches the threshold), and the model simulates it.
 ## "wave" = the protected tier appears; "block_from" = the first wave that is
 ## hard-blocked without the counter (GDD: "then stop at 6/10/14/18").
 const BARRIERS := [
@@ -28,9 +34,13 @@ const BARRIERS := [
 ## Economy (illustrative where the game has no campaign data yet).
 const START_SCRAP := 6        # matches entry.cargo start (M2 probe: cargo 6)
 const SCRAP_PER_WAVE := 6     # one short harvest cycle per cleared wave
-## Final mech requirement (M5 pending — parameterized, GDD: "a valid path must
-## also be able to build the required equipment before the final fight").
-const MECH := {"cost": 3, "req": ["r2"], "build_cost": 8, "name": "Hybrid Mech (M5 param)"}
+## M16: the mech gate is REAL data, not a parameter — the catalog's "mech"
+## node (Hybrid Chassis) and the game's actual build cost (MechData).
+static func mech_node() -> Dictionary:
+	return ResearchTree.NODES.get("mech", {})
+
+static func mech_build_cost() -> int:
+	return MechData.BUILD_COST
 
 ## Nuke rules: standard = current game value (entry.nuke_charge := 1).
 const NUKE_STANDARD := 1
@@ -96,7 +106,8 @@ static func simulate_attempt(start_earned: int, start_spent: int,
 	var holdouts_left := int(strategy.get("holdout", 0))
 	var blocked_wave := -1
 
-	while wave <= CAMPAIGN_WAVES:
+	var nwaves: int = campaign_waves()
+	while wave <= nwaves:
 		var need := required_threshold(wave)
 		# purchases happen "immediately usable after wave clear": before the
 		# next wave, buy the next line node while affordable (mixed builds:
@@ -110,18 +121,20 @@ static func simulate_attempt(start_earned: int, start_spent: int,
 						spent += cost
 						researched[id] = true
 						purchases.append({"id": id, "wave_after": wave - 1})
-			# mech: buy the research node, then build when scrap allows
-			if not researched.has("mech") and balance >= int(MECH["cost"]) \
-					and _reqs_met(researched, MECH["req"]):
-				balance -= int(MECH["cost"])
-				spent += int(MECH["cost"])
+			# mech: buy the research node, then build when scrap allows (M16:
+		# real catalog node + real build cost)
+			var mn: Dictionary = mech_node()
+			if not researched.has("mech") and mn.size() > 0 and balance >= int(mn["cost"]) \
+					and _reqs_met(researched, mn.get("req", [])):
+				balance -= int(mn["cost"])
+				spent += int(mn["cost"])
 				researched["mech"] = true
 				purchases.append({"id": "mech", "wave_after": wave - 1})
-			if researched.has("mech") and not mech_built and scrap >= int(MECH["build_cost"]):
-				scrap -= int(MECH["build_cost"])
+			if researched.has("mech") and not mech_built and scrap >= mech_build_cost():
+				scrap -= mech_build_cost()
 				mech_built = true
 		var ok := earned >= need
-		if wave == CAMPAIGN_WAVES and not mech_built and not researched.has("mech"):
+		if wave == nwaves and not mech_built and not researched.has("mech"):
 			ok = false  # final fight requires the mech
 		if ok:
 			earned += ENGRAM_PER_WAVE
@@ -146,7 +159,7 @@ static func simulate_attempt(start_earned: int, start_spent: int,
 		"purchases": purchases,
 		"mech_built": mech_built,
 		"blocked_wave": blocked_wave,
-		"won": wave > CAMPAIGN_WAVES,
+		"won": wave > nwaves,
 	}
 
 ## Reconstruct the largest owned set for a given spent total (used for the
@@ -206,11 +219,15 @@ static func run_campaign(nukes_per_attempt: int, respec: bool,
 		"final_earned": earned,
 	}
 
-## Exhaustive search: nuke charges 0/1/2, respec on/off, all nuke placements
-## (holdout patterns: skip nuking the first k blocked waves — walking away
-## early can never help, but the search verifies it rather than assuming it),
-## hoard-vs-spend is fixed to spend-immediately (the model's purchase rule;
-## hoarding only delays gear and never moves an earned-based threshold).
+## Strategy search over 18 configurations: nuke charges 0/1/2 × respec
+## on/off × nuke placement (holdout 0/1/2 — walk away from the first k
+## blocked waves instead of nuking them; verifies the greedy placement is
+## optimal). Enumerated in a fixed order — deterministic, and the order
+## cannot affect an earliest-win minimum.
+## Deliberately NOT varied (and why): the barriers gate on lifetime EARNED,
+## so which research line is bought cannot change a clear — the purchase
+## policy is fixed to spend-immediately, and hoarding can only delay the
+## mech chain (the only purchase timing that matters), never shorten it.
 static func search() -> Dictionary:
 	var results := []
 	for nukes in [0, NUKE_STANDARD, NUKE_PERMISSIVE]:

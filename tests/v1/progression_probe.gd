@@ -1,8 +1,10 @@
 extends Node
-## M4 progression probe: offline model verification, headless, no scene.
-## Checks: GDD reference reproduction, exhaustive search (nuke charges 0/1/2,
-## respec on/off, all holdout placements), attempts 1-4 infeasibility, nuke
-## invariance, respec boundary, mech gate, catalog depth gap, JSON export.
+## M4/M16 progression probe: offline model verification + LIVE enforcement.
+## Offline: GDD reference reproduction, 18-configuration strategy search,
+## attempts 1-4 infeasibility, nuke invariance, respec boundary, mech gate,
+## catalog depth, JSON export, real-data wiring (campaign length, mech node).
+## Live (M16): the barrier schedule seals waves under the threshold (flow
+## result "sealed"), and a nuked wave is bypassed without an engram.
 
 var _ok := 0
 var _fail := 0
@@ -16,9 +18,27 @@ func check(name: String, cond: bool) -> void:
 		print("  [FAIL] " + name)
 
 func _ready() -> void:
-	var trace_export := {}
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_run()
 
-	# 1 reference reproduction (0 nukes, no respec): must match the GDD table
+func _wait(n: int) -> void:
+	var i := 0
+	while i < n:
+		i += 1
+		await get_tree().process_frame
+
+## Real-time wait (headless frames are not a reliable 1/60 s).
+func _wait_s(sec: float) -> void:
+	await (get_tree().create_timer(sec)).timeout
+
+func _wipe() -> void:
+	for pth in ["chronolith_v1_profile.json", "chronolith_v1_profile.json.bak", "chronolith_v1_profile.json.tmp"]:
+		var gp := ProjectSettings.globalize_path("user://" + pth)
+		if FileAccess.file_exists(gp):
+			DirAccess.remove_absolute(gp)
+
+func _run() -> void:
+	# ---------------------------------------------------------- offline ------
 	var ref := ProgressionModel.run_campaign(0, false, {"holdout": 0})
 	var clears := []
 	var cumul := []
@@ -32,13 +52,12 @@ func _ready() -> void:
 		cumul[0] == 5 and cumul[1] == 14 and cumul[2] == 27 and cumul[3] == 44)
 	check("reference: win on attempt 5", ref["win_attempt"] == 5)
 
-	# 2 exhaustive search
+	# strategy search (18 configurations: nukes x respec x holdout)
 	var sr := ProgressionModel.search()
-	check("search: 18 strategy runs completed", sr["results"].size() == 18)
+	check("search: 18 strategy configurations completed", sr["results"].size() == 18)
 	var best := ProgressionModel.best_win(sr["results"])
 	check("search: earliest win = attempt 5", int(best.get("earliest_attempt", 0)) == 5)
 
-	# 3 attempts 1-4 infeasible under every strategy
 	var infeasible := true
 	var gaps := []
 	for r in sr["results"]:
@@ -57,7 +76,6 @@ func _ready() -> void:
 			})
 	check("infeasible: no strategy wins in attempts 1-4", infeasible)
 
-	# 4 nuke invariance: 0 / 1 / 2 charges all give earliest win 5
 	var inv := true
 	var by_nukes := {}
 	for r in sr["results"]:
@@ -69,8 +87,6 @@ func _ready() -> void:
 	check("nuke invariance: 0/1/2 charges -> earliest win 5",
 		inv and by_nukes.has(0) and by_nukes.has(1) and by_nukes.has(2))
 
-	# 5 respec boundary: full refund does not lower the earliest win;
-	#    no negative balances anywhere
 	var respec_same := true
 	var neg_balance := false
 	for r in sr["results"]:
@@ -84,9 +100,6 @@ func _ready() -> void:
 	check("respec boundary: earliest win unchanged, no negative balances",
 		respec_same and not neg_balance)
 
-	# 6 mech gate: the winning path buys + builds the mech before wave 20.
-	# Research persists across attempts (GDD), so the purchase may sit in an
-	# earlier attempt; it only needs to exist before the final fight.
 	var win_attempt_data: Dictionary = best["attempts"][int(best["win_attempt"]) - 1]["result"]
 	var mech_trace := bool(win_attempt_data["mech_built"])
 	var mech_buy_wave := -1
@@ -97,24 +110,30 @@ func _ready() -> void:
 		for p in ar["purchases"]:
 			if p["id"] == "mech":
 				mech_buy_wave = int(p["wave_after"])
-	check("mech gate: bought before final wave and built (param %s)" % str(ProgressionModel.MECH["name"]),
-		mech_trace and mech_buy_wave >= 0 and mech_buy_wave < ProgressionModel.CAMPAIGN_WAVES - 1)
+	check("mech gate: bought before final wave and built (real node %s)" % str(ProgressionModel.mech_node().get("name", "?")),
+		mech_trace and mech_buy_wave >= 0 and mech_buy_wave < ProgressionModel.campaign_waves() - 1)
 
-	# 7 real catalog depth vs the deepest barrier
 	var cat := ProgressionModel.catalog_total_cost()
 	check("catalog depth: real tree %d >= wave-16 threshold 45 (M6: gap closed)" % cat,
 		cat >= 45)
 
-	# 8 export
-	trace_export = {
-		"model": "M4 progression model (GDD reference schedule + real v1 rules)",
+	# M16: the model is wired to real gameplay data, not model-local constants
+	check("real data: campaign length = live WAVE_PLAN (%d)" % ProgressionModel.campaign_waves(),
+		ProgressionModel.campaign_waves() == int(WaveDirector.WAVE_PLAN.size()) and ProgressionModel.campaign_waves() == 20)
+	var mn: Dictionary = ProgressionModel.mech_node()
+	check("real data: mech = catalog node (cost 3, req r2) + real build cost 8",
+		int(mn.get("cost", -1)) == 3 and mn.get("req", []) == ["r2"]
+		and ProgressionModel.mech_build_cost() == MechData.BUILD_COST and ProgressionModel.mech_build_cost() == 8)
+
+	var trace_export := {
+		"model": "M4 progression model (GDD barrier schedule enforced live, M16 + real v1 data)",
 		"reference_table": {"clears": clears, "cumulative": cumul},
 		"earliest_win_by_nukes": _nukes_map(by_nukes),
 		"attempt_1_4_gaps": gaps,
 		"winning_strategy": _tag(best),
 		"winning_trace": best["attempts"],
 		"catalog_total_cost": cat,
-		"mechanic_param": ProgressionModel.MECH,
+		"mech_node": mn,
 	}
 	var gp := ProjectSettings.globalize_path("res://docs/progression-traces.json")
 	var f := FileAccess.open(gp, FileAccess.WRITE)
@@ -126,6 +145,64 @@ func _ready() -> void:
 		_fail += 1
 		print("  [FAIL] export docs/progression-traces.json")
 
+	# ------------------------------------------------------- live (M16) ------
+	_wipe()
+	var es := ResourceLoader.load("res://scenes/v1/entry.tscn") as PackedScene
+	var e1 = es.instantiate()
+	e1.story_enabled = false
+	add_child(e1)
+	await _wait(40)
+	var d: Node = e1.director
+	var k: Knowledge = e1.knowledge
+
+	# live wave 1: a nuked wave is bypassed — no engram
+	d.wave = 1
+	d.state = d.State.PREP
+	d.early_start()
+	await _wait_s(2.0)
+	check("live: wave 1 assault running", d.state == d.State.ASSAULT and get_tree().get_nodes_in_group("enemy").size() == 3)
+	e1._fire_nuke()
+	await _wait_s(2.5)  # death timers + relay
+	check("live: nuked wave bypassed WITHOUT engram", int(k.earned_total) == 0 and d.state == d.State.PREP and d.wave == 2)
+
+	# live wave 2: a normal clear still awards the engram
+	d.early_start()
+	await _wait_s(2.0)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		e.call("damage", 9999)
+	await _wait_s(2.5)
+	check("live: normal clear awards the engram", int(k.earned_total) == 1 and d.state == d.State.PREP and d.wave == 3)
+
+	# live seal: wave 6 sits under barrier A (threshold 6); nothing carried
+	d.wave = 6
+	d.state = d.State.PREP
+	d.prep_left = d.PREP_TIME
+	d.early_start()
+	await _wait(4)
+	check("live: wave 6 sealed below the threshold (no assault, no spawn)",
+		d.state == d.State.BLOCKED and get_tree().get_nodes_in_group("enemy").is_empty())
+	check("live: sealed wave ends the attempt (flow result sealed)",
+		e1.flow.last_result == "sealed" and not e1.flow.running)
+	# probe re-arm: the end overlay paused the tree
+	get_tree().paused = false
+	e1.flow.running = true
+	check("live: sealed wave awarded no engram", int(k.earned_total) == 1)
+
+	# live threshold pass: carrying the threshold opens the same wave
+	k.earned_total = 6
+	d.wave = 6
+	d.state = d.State.PREP
+	d.prep_left = d.PREP_TIME
+	d.early_start()
+	await _wait_s(3.5)  # 4 grunts stagger to 2.4 s — window must clear the last spawn
+	check("live: wave 6 opens at threshold 6 (assault with 4 grunts)",
+		d.state == d.State.ASSAULT and get_tree().get_nodes_in_group("enemy").size() == 4)
+	for e in get_tree().get_nodes_in_group("enemy"):
+		e.call("damage", 9999)
+	await _wait_s(2.5)
+
+	e1.queue_free()
+	await _wait(5)
 	print("== progression probe: %d ok, %d fail ==" % [_ok, _fail])
 	get_tree().quit(0 if _fail == 0 else 1)
 

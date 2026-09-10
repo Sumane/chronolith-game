@@ -14,6 +14,10 @@ func on_rover_lost() -> void:
 func on_crystal_lost() -> void:
 	_end("lost_crystal")
 
+## M16: the wave was sealed by the GDD barrier schedule (knowledge gap)
+func on_sealed() -> void:
+	_end("sealed")
+
 func on_won() -> void:
 	_end("win")
 

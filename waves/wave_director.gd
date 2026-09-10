@@ -13,7 +13,7 @@ const SPAWN_STAGGER := 0.8
 const WARDEN_WAVES := {3: 1, 7: 1, 11: 1, 15: 1, 19: 1, 20: 1}  # M4/M6
 const GOLEM_WAVES := {5: 1, 10: 1, 16: 1, 20: 1}  # M6: armored pressure
 
-enum State { PREP, ASSAULT, WIN }
+enum State { PREP, ASSAULT, WIN, BLOCKED }
 
 var wave := 1
 var state := State.PREP
@@ -27,6 +27,8 @@ var alive := 0
 var arena
 var crystal: Node3D = null
 var rover: Node3D = null
+# M16: lifetime knowledge — the GDD barrier schedule is enforced at assault start
+var knowledge: Knowledge = null
 
 # 8 fixed edge points; waves fan out from a rotating sector
 const EDGES := [
@@ -38,6 +40,8 @@ const EDGES := [
 signal wave_started(wave: int, direction: String)
 signal wave_cleared(wave: int)
 signal attempt_won()
+# M16: a wave is sealed until lifetime knowledge reaches its GDD threshold
+signal sealed(wave: int, need: int)
 signal warden_event(w: Warden, kind: String)
 signal golem_event(g: Golem, kind: String)
 signal warden_died(w: Warden)
@@ -57,6 +61,16 @@ func early_start() -> void:
 		prep_left = 0.0
 
 func _start_assault() -> void:
+	# M16: the GDD barrier schedule is live. A wave is sealed until lifetime
+	# knowledge (earned_total — receipts persist across attempts) reaches its
+	# threshold; a sealed wave ends the attempt. It is a knowledge gap, not a
+	# death: the next attempt starts with more carried knowledge.
+	if knowledge != null:
+		var need: int = ProgressionModel.required_threshold(wave)
+		if knowledge.earned_total < need:
+			state = State.BLOCKED
+			sealed.emit(wave, need)
+			return
 	state = State.ASSAULT
 	var size: int = endless_size(wave) if endless else int(wave_plan[wave - 1])
 	size = mini(size, MAX_ALIVE - 2)
