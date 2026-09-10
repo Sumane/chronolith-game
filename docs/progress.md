@@ -641,3 +641,33 @@ placement instead of selling; gamepad `build_1` (X) reaches the entry.
 
 Full regression green: m1-m8 142 + input 16 + terrain 3 + progression
 10 + sell 17 + 2D smoke 71.
+
+## M12 — health bars (v1)
+
+Playtest: "a health bar for enemies above their head, for the player
+top-left of the screen, and the crystal bottom-center."
+
+- `ui/enemy_hp_bar.gd` (new): `EnemyHpBar` — a floating 3D bar (unshaded
+  backing plate + left-anchored red fill with a polygon offset, so no
+  z-fighting). Hidden while the enemy is at full health, shown on
+  damage, and billboards toward the active camera every frame.
+- `combat/enemy.gd` (Grunt), `combat/warden.gd`, `combat/golem.gd`:
+  each owns an `hp_bar` child named "HpBar" (placed above the head:
+  1.55 / 2.35 / 2.55 m), gets a `max_hp` var, and refreshes the bar in
+  its `damage()`. Warden fraction is armor-aware (the bar shows the hp
+  after armor is applied).
+- `ui/hud.gd`: rover health bar top-left (green, 220 px, label moved
+  below it) and crystal health bar bottom-center (blue, 260 px, label
+  moved above it); both left-anchored ColorRect fills driven by the
+  existing `set_rover()` / `set_crystal()` refresh path, so they stay
+  in sync with nukes, rams, and crystal damage with no new wiring.
+
+New `tests/v1/hpbar_probe.tscn` (13 checks): grunts spawn with hidden
+bars; a damaged grunt's bar shows at the exact remaining fraction;
+warden bar is armor-aware; golem bar (direct spawn) works; rover bar
+full at boot and shrunk to 70% after 30 dmg; crystal bar full then
+70% after 15 dmg; a killed grunt and its bar are freed with the
+corpses' death timer.
+
+Full regression green: m1-m8 142 + input 16 + terrain 3 + progression
+10 + sell 17 + hpbar 13 + 2D smoke 71.

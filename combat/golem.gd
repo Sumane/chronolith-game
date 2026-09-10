@@ -17,6 +17,8 @@ const MELEE := 40
 const MELEE_CD := 1.5
 
 var hp := HP
+var max_hp := HP
+var hp_bar: EnemyHpBar
 var goal: Node3D = null
 var arena
 var _rover: Node3D = null
@@ -53,6 +55,11 @@ func _ready() -> void:
 	mi.position = Vector3(0, 1.3, 0)
 	vis.add_child(mi)
 	add_child(vis)
+	hp_bar = EnemyHpBar.new()
+	hp_bar.name = "HpBar"
+	hp_bar.position = Vector3(0, 2.55, 0)
+	add_child(hp_bar)
+	hp_bar.set_hp(hp, max_hp)
 
 func _physics_process(delta: float) -> void:
 	if _dead:
@@ -101,6 +108,8 @@ func damage(n: int, piercing: bool = false) -> void:
 			return
 		n = left
 	hp = maxi(0, hp - n)
+	if hp_bar != null:
+		hp_bar.set_hp(hp, max_hp)
 	if hp <= 0:
 		_dead = true
 		died.emit(self)

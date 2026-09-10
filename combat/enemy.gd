@@ -10,6 +10,8 @@ const ROVER_AGGRO := 6.0
 const ATTACK_CD := 0.7
 
 var hp := 20
+var max_hp := 20
+var hp_bar: EnemyHpBar
 var goal: Node3D = null
 var arena
 var _rover: Node3D = null
@@ -55,6 +57,11 @@ func _ready() -> void:
 	ei.material_override = em
 	ei.position = Vector3(0, 1.25, -0.35)
 	add_child(ei)
+	hp_bar = EnemyHpBar.new()
+	hp_bar.name = "HpBar"
+	hp_bar.position = Vector3(0, 1.55, 0)
+	add_child(hp_bar)
+	hp_bar.set_hp(hp, max_hp)
 
 func _physics_process(delta: float) -> void:
 	if _dead or goal == null or not is_instance_valid(goal):
@@ -136,6 +143,8 @@ func damage(n: int) -> void:
 	if _dead:
 		return
 	hp -= n
+	if hp_bar != null:
+		hp_bar.set_hp(hp, max_hp)
 	if hp <= 0:
 		_dead = true
 		remove_from_group("enemy")

@@ -23,6 +23,8 @@ const DEFLECT_DMG := 40
 const WALL_MELEE := 20
 
 var hp := 150
+var max_hp := 150
+var hp_bar: EnemyHpBar
 var goal: Node3D = null
 var arena
 var _rover: Node3D = null
@@ -71,6 +73,11 @@ func _ready() -> void:
 	ci.material_override = cm
 	ci.position = Vector3(0, 1.9, -0.2)
 	add_child(ci)
+	hp_bar = EnemyHpBar.new()
+	hp_bar.name = "HpBar"
+	hp_bar.position = Vector3(0, 2.35, 0)
+	add_child(hp_bar)
+	hp_bar.set_hp(hp, max_hp)
 
 func _physics_process(delta: float) -> void:
 	if _dead or goal == null or not is_instance_valid(goal):
@@ -234,6 +241,8 @@ func damage(n: int, piercing: bool = false) -> void:
 	else:
 		warden_event.emit(self, "counter")
 	hp -= dmg
+	if hp_bar != null:
+		hp_bar.set_hp(hp, max_hp)
 	if hp <= 0:
 		_die()
 
