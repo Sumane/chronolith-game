@@ -153,7 +153,45 @@ func commit() -> Dictionary:
 	b.position = cell_center(c)
 	(b as Node).set("cell", c)
 	_apply_effects(b)
-	occupied[c] = true
+	occupied[c] = b
 	arena.get_parent().add_child(b)
 	build_placed.emit(b, c)
 	return {"ok": true, "building": b, "cell": c}
+
+## M15: serializable state of every standing building.
+func snapshot() -> Array:
+	var out: Array = []
+	for c in occupied.keys():
+		var b: Node = occupied[c]
+		if not is_instance_valid(b):
+			continue
+		out.append({
+			"t": "wall" if b is Wall else "turret",
+			"c": [int(c.x), int(c.y)],
+			"hp": int(b.hp),
+		})
+	return out
+
+## M15: rebuild the saved buildings at their cells with their saved hp.
+func restore(items: Array) -> void:
+	for it in items:
+		var c := Vector2i(int(it["c"][0]), int(it["c"][1]))
+		if occupied.has(c):
+			continue
+		var b: Node
+		if it["t"] == "wall":
+			b = load("res://building/wall.gd").new()
+		else:
+			b = load("res://building/turret.gd").new()
+			b.set("combat", combat)
+		b.position = cell_center(c)
+		b.set("cell", c)
+		_apply_effects(b)
+		var hpv := maxi(1, int(it["hp"]))
+		var mx: Variant = b.get("max_hp")
+		if mx != null and int(mx) > 0:
+			hpv = mini(hpv, int(mx))
+		b.set("hp", hpv)
+		occupied[c] = b
+		arena.get_parent().add_child(b)
+		build_placed.emit(b, c)

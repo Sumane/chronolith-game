@@ -52,6 +52,8 @@ var profile_recovered := false
 var _saved_attempt_id := ""
 var _saved_wave := 0
 var _saved_cargo := 0
+# M15: the full attempt state (buildings, deposits, mech, nukes, endless...)
+var _saved_attempt := {}
 var hud: HudLayer
 var _overlay: CanvasLayer
 var _end_overlay: CanvasLayer
@@ -400,6 +402,7 @@ func _load_profile() -> void:
 	_story = sf if sf is Dictionary else {}
 	var att: Dictionary = data.get("attempt", {})
 	if att.size() > 0:
+		_saved_attempt = att
 		_saved_attempt_id = str(att.get("id", ""))
 		_saved_wave = int(att.get("wave", 0))
 		_saved_cargo = int(att.get("cargo", 0))
@@ -409,8 +412,33 @@ func _resume_checkpoint() -> void:
 		attempt_id = _saved_attempt_id
 		cargo = _saved_cargo
 		director.wave = _saved_wave
+		director.endless = bool(_saved_attempt.get("endless", false))
 		director.state = WaveDirector.State.PREP
 		director.prep_left = WaveDirector.PREP_TIME
+		nuke_charge = int(_saved_attempt.get("nuke", nuke_charge))
+		# M15: restore the physical state of the run. The mech is restored
+		# first (transform_to_mech sets max_hp and a full hp); the saved rover
+		# hp is applied on top of that. A run that ended by death (hp or
+		# crystal integrity <= 0) respawns whole so the checkpoint is playable.
+		if bool(_saved_attempt.get("mech", false)):
+			rig.transform_to_mech()
+		var rhp := int(_saved_attempt.get("rover_hp", 0))
+		if rhp <= 0:
+			rhp = rig.max_hp
+		rig.hp = clampi(rhp, 1, rig.max_hp)
+		var cinteg := int(_saved_attempt.get("crystal", arena.crystal.integrity))
+		if cinteg <= 0:
+			arena.crystal.integrity = arena.crystal.max_integrity
+			arena.crystal.destroyed = false
+		else:
+			arena.crystal.integrity = cinteg
+		var flags: Array = _saved_attempt.get("deposits", [])
+		var kids: Array = arena.dep_group.get_children()
+		for i in int(flags.size()):
+			if i < kids.size() and bool(flags[i]):
+				(kids[i] as Deposit).depleted = true
+				kids[i]._refresh()
+		build.restore(_saved_attempt.get("buildings", []))
 		_set_banner("CHECKPOINT RESTORED: WAVE %d OF %d" % [_saved_wave, int(director.wave_plan.size())])
 	else:
 		attempt_id = _new_attempt_id()
@@ -425,10 +453,28 @@ func _profile_data() -> Dictionary:
 		"story_flags": _story,
 	}
 	if flow.running:
-		d["attempt"] = {"id": attempt_id, "wave": director.wave, "cargo": cargo}
+		# M15: the whole physical state of the run — not just id/wave/scrap.
+		d["attempt"] = {
+			"id": attempt_id,
+			"wave": director.wave,
+			"cargo": cargo,
+			"crystal": int(arena.crystal.integrity),
+			"rover_hp": int(rig.hp),
+			"mech": bool(rig.mech_mode),
+			"nuke": int(nuke_charge),
+			"endless": bool(director.endless),
+			"deposits": _deposit_flags(),
+			"buildings": build.snapshot(),
+		}
 	else:
 		d["attempt"] = {}
 	return d
+
+func _deposit_flags() -> Array:
+	var out: Array = []
+	for k in arena.dep_group.get_children():
+		out.append(bool((k as Deposit).depleted))
+	return out
 
 func _save_profile() -> Dictionary:
 	return profile.save(_profile_data())

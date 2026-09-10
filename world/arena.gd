@@ -28,6 +28,7 @@ const BLOCKER_POS := Vector3(0.0, 0.0, -2.0)  # keeps north-centre flanked (M1 L
 const BLOCKER_R := 1.6
 
 var crystal: ChronolithCrystal
+var dep_group: Node3D
 var rock_list: Array = []
 
 # M6: resource distance ladder — 7 / 10 / 13 / 17 / 21 m from the crystal.
@@ -53,7 +54,7 @@ func _ready() -> void:
 	crystal = ChronolithCrystal.new()
 	crystal.name = "Chronolith"
 	add_child(crystal)
-	var dep_group := Node3D.new()
+	dep_group = Node3D.new()
 	dep_group.name = "Deposits"
 	for i in DEPOSIT_POS.size():
 		var d := Deposit.new()
