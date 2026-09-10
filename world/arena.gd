@@ -85,6 +85,7 @@ func _mat(c: Color) -> StandardMaterial3D:
 func _terrain_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _grid_texture()
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	m.roughness = 1.0
 	return m
 
@@ -107,16 +108,16 @@ func _plain_texture() -> ImageTexture:
 			if x % CELL == 0 or y % CELL == 0:
 				c = line
 			img.set_pixel(x, y, c)
-	# (tiling is driven by the 3D material's texture_repeat_enabled +
-	# u_tile/v_tile — the texture's own repeat mode is a 2D-canvas thing)
+	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
 
 func _plain_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _plain_texture()
-	m.texture_repeat_enabled = true
-	m.u_tile = 500.0 / 32.0
-	m.v_tile = 500.0 / 32.0
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	# Godot 4 tiling: uv1_scale (u_tile/v_tile are Godot 3.x names — they warn
+	# and are silently ignored)
+	m.uv1_scale = Vector3(500.0 / 32.0, 500.0 / 32.0, 1.0)
 	m.roughness = 1.0
 	return m
 
@@ -138,6 +139,7 @@ func _grid_texture() -> ImageTexture:
 			if x % PER_M == 0 or y % PER_M == 0:
 				c = line
 			img.set_pixel(x, y, c)
+	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
 
 func _build_environment() -> void:
