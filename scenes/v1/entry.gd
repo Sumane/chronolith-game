@@ -76,8 +76,11 @@ func _ready() -> void:
 	# explicit pause semantics: this subtree must honor tree.paused even when
 	# embedded under an ALWAYS parent (headless probes)
 	process_mode = Node.PROCESS_MODE_PAUSABLE
-	InputSetup.setup()
+	# v1 actions first: InputSetup.setup() creates the gamepad-bound actions
+	# (sell_build, build_1, ...) and would make _add_key's has_action guard
+	# skip the keyboard keys for them
 	_register_actions()
+	InputSetup.setup()
 	arena = (ResourceLoader.load("res://scenes/v1/arena.tscn") as PackedScene).instantiate()
 	add_child(arena)
 	# M6 TEMPORAL: stasis burst state lives on the arena (enemies hold arena refs)
@@ -184,9 +187,9 @@ func spendable(n: int) -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if not flow.running:
 		return
-	if event.is_action_pressed("build_wall"):
+	if event.is_action_pressed("build_wall") or event.is_action_pressed("build_1"):
 		_start_build("wall")
-	elif event.is_action_pressed("build_turret"):
+	elif event.is_action_pressed("build_turret") or event.is_action_pressed("build_2"):
 		_start_build("turret")
 	elif event.is_action_pressed("cancel_build"):
 		build.cancel()
@@ -211,6 +214,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			_try_time_burst()
 	elif event.is_action_pressed("restart_attempt"):
 		get_tree().reload_current_scene()
+	elif event.is_action_pressed("sell_build") or \
+			(event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT and not build.active):
+		_try_sell()
 	elif event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT and build.active:
 		var res: Dictionary = build.commit()
 		if not res.get("ok", false):
@@ -218,6 +224,28 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("pause_toggle") and build.active:
 		build.cancel()
 		rig.build_locked = false
+
+## M11: sell the building under the crosshair. RMB routes here only when no
+## build is active (RMB while placing cancels the placement above).
+func _try_sell() -> void:
+	if build.active:
+		return
+	var r: Dictionary = rig.aim_ray()
+	if r.is_empty():
+		return
+	var rover: CharacterBody3D = rig.get_node("Rover")
+	var q := PhysicsRayQueryParameters3D.create(
+		r["orig"], r["orig"] + r["dir"] * 200.0, -1, [rover.get_rid()])
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(q)
+	if hit.is_empty():
+		return
+	var col: Node = hit.get("collider")
+	if col is BuildingBase and (col as BuildingBase).hp > 0:
+		var res: Dictionary = build.sell(col)
+		if res.get("ok", false):
+			_set_banner("SOLD " + str(res["type"]).to_upper() + " (+" + str(res["refund"]) + " scrap)")
+		else:
+			_set_banner("CANNOT SELL: " + str(res.get("reason", "")))
 
 func _start_build(type: String) -> void:
 	build.start_build(type)
@@ -237,11 +265,22 @@ func _register_actions() -> void:
 	_add_key("mech_transform", KEY_T)
 	_add_key("debug_golem", KEY_B)
 	_add_key("time_burst", KEY_C)
+	_add_key("sell_build", KEY_Z)
+
+# keycodes already added per action (InputMap has no event enumeration API;
+# survives scene reloads within one process)
+static var _key_actions: Dictionary = {}
 
 func _add_key(action: String, keycode: Key) -> void:
-	if InputMap.has_action(action):
+	# the action may pre-exist (gamepad bindings); make sure this key is in
+	# it, without duplicating on scene reloads
+	var added: Array = _key_actions.get(action, [])
+	if added.has(keycode):
 		return
-	InputMap.add_action(action)
+	added.append(keycode)
+	_key_actions[action] = added
+	if not InputMap.has_action(action):
+		InputMap.add_action(action)
 	var k := InputEventKey.new()
 	k.keycode = keycode
 	InputMap.action_add_event(action, k)

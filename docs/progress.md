@@ -599,3 +599,45 @@ placeholder tiles to make out the terrain."
 New `tests/v1/terrain_probe.tscn` (3 checks): grid texture on the terrain
 mesh, wide plain present, fog raised. Full regression green (158 v1 +
 this probe + 2D smoke 71).
+
+## M11 — selling buildings (v1)
+
+Playtest: "there doesn't seem to be an option to drop turrets and walls
+etc."
+
+New mechanic — aim the crosshair at a building, press **Z / RMB /
+gamepad RIGHT_SHOULDER**, get half its cost back (wall 2 -> 1, turret
+4 -> 2). RMB while a placement is active still cancels the placement
+(it is checked first in the input chain), so the two never clash.
+
+- `building/build_service.gd`: `sell(b)` — validates the target is a
+  living `BuildingBase`, frees its grid cell (`occupied`), credits the
+  refund (`floor(cost / 2)`) via the wallet, emits `build_sold`,
+  `queue_free`s the building. Guards: non-building, already-destroyed.
+  A freed reference is rejected by the typed parameter itself.
+- `scenes/v1/entry.gd`: `sell_build` action (Z) + RMB fallback route in
+  `_unhandled_input`; `_try_sell()` fires the crosshair ray (200 m,
+  rover excluded) and sells the first living building it hits, with a
+  "SOLD WALL (+1 scrap)" / "CANNOT SELL: reason" banner.
+- `player/player_rig.gd`: `aim_ray()` (screen-centre ray for
+  raycast-based interactions) and `debug_set_orbit()` / `debug_aim_at()`
+  test hooks.
+- `building/wall.gd`: `class_name Wall` (needed for the `is Wall` type
+  check; was missing).
+- `core/input_map_setup.gd`: `sell_build` -> RIGHT_SHOULDER binding.
+
+Input-registration bug fixed along the way: `InputSetup.setup()` ran
+before `_register_actions()`, so the gamepad-created `sell_build`
+action made `_add_key`'s `has_action` guard silently skip the Z key.
+The call order is swapped and `_add_key` now only skips a key it has
+already added (static per-action map — InputMap has no public event
+enumeration API), so reloads stay duplicate-free.
+
+New `tests/v1/sell_probe.tscn` (17 checks): sell refunds + wallet +
+cell freed + rebuildable; dead/non-building guards; keyboard Z and
+gamepad RIGHT_SHOULDER routes through the real crosshair ray (a
+verified wall on the live ray, camera fully converged); RMB cancels a
+placement instead of selling; gamepad `build_1` (X) reaches the entry.
+
+Full regression green: m1-m8 142 + input 16 + terrain 3 + progression
+10 + sell 17 + 2D smoke 71.

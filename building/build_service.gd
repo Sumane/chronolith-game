@@ -18,6 +18,26 @@ var _ghost: MeshInstance3D
 
 signal build_placed(building: Node, cell: Vector2i)
 signal build_cancelled()
+signal build_sold(building: Node, refund: int)
+
+## M11: explicit removal. Refunds half the base cost, frees the building,
+## frees its cell. Dead buildings are mid-death already and refuse.
+func sell(b: Node) -> Dictionary:
+	if not b is BuildingBase:
+		return {"ok": false, "reason": "not_a_building"}
+	var base: BuildingBase = b
+	if base.hp <= 0:
+		return {"ok": false, "reason": "already_destroyed"}
+	var type := "wall" if base is Wall else "turret"
+	if not COSTS.has(type):
+		return {"ok": false, "reason": "not_a_building"}
+	occupied.erase(base.cell)
+	var refund: int = int(COSTS[type] / 2)
+	if wallet != null:
+		wallet.gain(refund)
+	build_sold.emit(base, refund)
+	base.queue_free()
+	return {"ok": true, "refund": refund, "type": type}
 
 func _ready() -> void:
 	_ghost = MeshInstance3D.new()

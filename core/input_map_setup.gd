@@ -34,6 +34,7 @@ const GAMEPAD_BINDINGS := {
 	"build_1": [JOY_BUTTON_X],
 	"build_2": [JOY_BUTTON_Y],
 	"cancel_build": [JOY_BUTTON_RIGHT_STICK],
+	"sell_build": [JOY_BUTTON_RIGHT_SHOULDER],
 	"pause_toggle": [JOY_BUTTON_START],
 	"rewind": [JOY_BUTTON_BACK],
 	"move_up": [JOY_BUTTON_DPAD_UP],

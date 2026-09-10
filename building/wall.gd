@@ -1,3 +1,4 @@
+class_name Wall
 extends BuildingBase
 ## M2 energy wall: 1x1x1.8 m, translucent cyan panel (blockout).
 

@@ -260,6 +260,23 @@ func demolish_mech() -> void:
 func aim_point() -> Vector3:
 	return _aim_pos
 
+## Test hook: set the camera orbit angles directly.
+func debug_set_orbit(yaw: float, pitch: float) -> void:
+	_yaw = yaw
+	_pitch = pitch
+
+## Test hook: aim the crosshair exactly at a world position.
+func debug_aim_at(pos: Vector3) -> void:
+	_cam_rig.look_at(pos, Vector3.UP)
+
+## The crosshair ray itself (screen-centre), for raycast-based interactions.
+func aim_ray() -> Dictionary:
+	var vp := _cam.get_viewport()
+	if vp == null:
+		return {}
+	var centre := Vector2(vp.get_visible_rect().size) / 2.0
+	return {"orig": _cam.project_ray_origin(centre), "dir": _cam.project_ray_normal(centre)}
+
 func aim_valid() -> bool:
 	return _aim_valid
 
