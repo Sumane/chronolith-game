@@ -838,3 +838,21 @@ floating").
 - `terrain_probe` now asserts the plain's texture and position (5 checks).
 
 Full regression green: v1 240 checks across 16 probes + 2D smoke 71.
+
+### 3b — real tiling + mipmaps (renderer-verified)
+
+The tiling used Godot 3.x property names (`u_tile`/`v_tile`/
+`texture_repeat_enabled`), which Godot 4 warns about and silently
+ignores — the tile stretched over the whole 500 m field and still read
+as a flat gradient (the user's second "inverted texture" report). Fixed
+with `uv1_scale` (a Vector3 in 4.7) for the plain's 32 m repeat, and
+`generate_mipmaps()` + `LINEAR_WITH_MIPMAPS` on both ground textures
+(without a mipmap chain the 1 m arena grid minifies and aliases out at
+range).
+
+Renderer-verified on the playtest GPU via `tests/v1/ground_debug.tscn`
+(arena only, no profile, 3 camera shots): the player view shows the 1 m
+grid crisp in the foreground, the edge view shows the plain's 4 m tile
+repeating to the fog line, and the horizon now reads as ground fading
+into haze. (A 60 m straight-down shot is ~96% fog by design, not a
+defect.) Full regression re-run green: 240 v1 + 71 2D.
