@@ -95,13 +95,23 @@ func _attack(t: Node) -> void:
 	if _cd > 0.0:
 		return
 	_cd = ATTACK_CD
-	if t.has_method("damage"):
+	var owner := _damage_owner(t)
+	if owner != null and owner.has_method("damage"):
 		if t == goal:
-			t.call("damage", 6)
+			owner.call("damage", 6)
 		elif t is BuildingBase:
-			t.call("damage", 4)
+			owner.call("damage", 4)
 		else:
-			t.call("damage", 5)
+			owner.call("damage", 5)
+
+## The node that owns hp. The Rover body is a collider child; its rig
+## parent owns damage(). Buildings and the crystal own their hp directly.
+func _damage_owner(t: Node) -> Node:
+	if t.has_method("damage"):
+		return t
+	if t.get_parent() != null and t.get_parent().has_method("damage"):
+		return t.get_parent()
+	return null
 
 func _move_to(to: Vector3, delta: float) -> void:
 	var dir := (to - global_position)

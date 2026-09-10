@@ -180,8 +180,12 @@ func _deflect() -> void:
 		_die()
 
 func _charge_hit(c: Object) -> void:
-	if c.has_method("damage"):
-		c.call("damage", CHARGE_HIT)
+	var t := c
+	# the Rover body is a collider child; its parent rig owns damage()
+	if not c.has_method("damage") and c is Node and (c as Node).get_parent() != null:
+		t = (c as Node).get_parent()
+	if t.has_method("damage"):
+		t.call("damage", CHARGE_HIT)
 	_state = "seek"
 	_cd = MELEE_CD
 
@@ -190,13 +194,16 @@ func _attack(t: Node) -> void:
 	if _cd > 0.0:
 		return
 	_cd = MELEE_CD
-	if t.has_method("damage"):
+	var owner := t
+	if not owner.has_method("damage") and owner.get_parent() != null:
+		owner = owner.get_parent()
+	if owner.has_method("damage"):
 		if t is BuildingBase:
-			t.call("damage", WALL_MELEE)
+			owner.call("damage", WALL_MELEE)
 		elif t == goal:
-			t.call("damage", 15)
+			owner.call("damage", 15)
 		else:
-			t.call("damage", 12)
+			owner.call("damage", 12)
 
 func _move_to(to: Vector3, delta: float) -> void:
 	var dir := to - global_position

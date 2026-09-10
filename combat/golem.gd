@@ -86,8 +86,8 @@ func _physics_process(delta: float) -> void:
 				and global_position.distance_to(b.global_position) < MELEE_RANGE and _cd <= 0.0:
 			b.call("damage", MELEE)
 			_cd = MELEE_CD
-	# the rover, if it gets close (the Rover body has no damage(); its parent
-	# rig owns hp — same gap the grunt's has_method guard hides)
+	# the rover, if it gets close (the Rover body is a collider child; its
+	# parent rig owns damage())
 	if _rover != null and is_instance_valid(_rover) \
 			and global_position.distance_to(_rover.global_position) < ROVER_RANGE and _cd <= 0.0:
 		var t: Node = _rover
