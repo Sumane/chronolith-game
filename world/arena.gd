@@ -1,11 +1,16 @@
 extends Node3D
-## M1 arena: hand-built 40 m x 40 m Mars test range.
+## M1 arena: hand-built Mars test range.
 ## Real geometry: heightmap terrain (HeightMapShape3D collision + matching
 ## mesh), shot-blocking rocks, fixed Chronolith crystal, target dummies.
 ## All blockout visuals (docs/asset-conventions.md).
+## Playtest fix 4: the whole visible field is ONE continuous ground surface
+## (120 m, textured at 1 m grid scale). The arena relief lives in the centre
+## 40 m and tapers back to 0 between r = 20 and r = 30. The old separate
+## 500 m "plain" under the heightmap is gone — it read as a second, lower
+## floor (a textured layer under the main ground).
 
-const GRID := 41
-const SIZE := 40.0
+const GRID := 121
+const SIZE := 120.0
 
 # M6: recognisable map. Four cover clusters (two rocks each) flank the
 # eight edge approaches; single pinch rocks force lanes; the blocker rock
@@ -43,7 +48,11 @@ func height_at(x: float, z: float) -> float:
 	h += maxf(0.0, -x - 8.0) * 0.22  # west slope ridge
 	var d := Vector2(x, z).length()
 	var pad := clampf((d - 6.0) / 6.0, 0.0, 1.0)  # flat buildable pad at centre
-	return h * pad * pad
+	# fix 4: identical inside the arena (r < 20), then the relief fades to a
+	# flat field between r = 20 and r = 30 so the extended ground is one
+	# continuous surface (fog swamps anything past ~45 m anyway)
+	var taper := 1.0 - smoothstep(20.0, 30.0, d)
+	return h * pad * pad * taper
 
 func _ready() -> void:
 	_build_environment()
@@ -89,42 +98,11 @@ func _terrain_material() -> StandardMaterial3D:
 	m.roughness = 1.0
 	return m
 
-## The plain beyond the arena: a 256 px tile covering 32 m (8 px per
-## metre) with a coarser 4 m grid — clearly ground, dimmer than the arena,
-## repeated across the 500 m field so the horizon never reads as sky.
-func _plain_texture() -> ImageTexture:
-	const RES := 256
-	const PER_M := 8
-	const CELL := 32  # 4 m grid cells
-	var img := Image.create(RES, RES, false, Image.FORMAT_RGB8)
-	var base := Color(0.22, 0.13, 0.09)
-	var line := Color(0.36, 0.22, 0.14)
-	for y in RES:
-		for x in RES:
-			var r := fmod(sin(float(x) * 12.9898 + float(y) * 78.233) * 43758.5453, 1.0)
-			r = absf(r)
-			var v := 1.0 + (r - 0.5) * 0.24
-			var c := Color(base.r * v, base.g * v, base.b * v)
-			if x % CELL == 0 or y % CELL == 0:
-				c = line
-			img.set_pixel(x, y, c)
-	img.generate_mipmaps()
-	return ImageTexture.create_from_image(img)
-
-func _plain_material() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_texture = _plain_texture()
-	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	# Godot 4 tiling: uv1_scale (u_tile/v_tile are Godot 3.x names — they warn
-	# and are silently ignored)
-	m.uv1_scale = Vector3(500.0 / 32.0, 500.0 / 32.0, 1.0)
-	m.roughness = 1.0
-	return m
-
-## The whole 40 m arena in one 640 px image (16 px per metre tile): base
-## Mars tone with deterministic speckle noise plus a bright line at every
-## tile edge, so the surface reads as 1 m square placeholder tiles and
-## distances are measurable.
+## The ground grid: one 640 px image (16 px per metre) with base Mars tone,
+## deterministic speckle noise and a bright line at every tile edge — the
+## surface reads as 1 m square placeholder tiles and distances are
+## measurable. The 120 m field reuses the same image tiled (UVs span 0..3),
+## so the 1 m grid is continuous from the arena to the field edge.
 func _grid_texture() -> ImageTexture:
 	const RES := 640
 	const PER_M := 16
@@ -160,18 +138,9 @@ func _build_environment() -> void:
 	env.fog_density = 0.03
 	world.environment = env
 	add_child(world)
-	# wide plain under the heightmap: looking over the arena edge meets a
-	# fog-shrouded Mars plain, not the void. Playtest fix 3: the plain is
-	# TEXTURED (untextured it read as a sky mirror — the inverted ground)
-	# and sits near the terrain's low edge so the arena reads as raised
-	# ground, not a floating slab over a see-through gap.
-	var gp := MeshInstance3D.new()
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(500.0, 500.0)
-	gp.mesh = plane
-	gp.material_override = _plain_material()
-	gp.position.y = -1.8
-	add_child(gp)
+	# fix 4: no separate plain. The horizon IS the terrain field itself
+	# (120 m of 1 m grid texture fading into fog) — one ground surface,
+	# nothing under the main ground.
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-55.0, -30.0, 0.0)
 	sun.light_energy = 1.3
@@ -201,9 +170,10 @@ func _build_terrain() -> void:
 			var hx := height_at(x + 0.5, z) - height_at(x - 0.5, z)
 			var hz := height_at(x, z + 0.5) - height_at(x, z - 0.5)
 			nrm.append(Vector3(-hx, 1.0, -hz).normalized())
-			# 0..1 across the arena: one 640 px texture covers it 1:1,
-			# so tiling needs no texture repeat mode
-			uvs.append(Vector2(ix / float(n - 1), iz / float(n - 1)))
+			# the 640 px image covers 40 m (16 px per metre); the 120 m field
+			# tiles it 3x (UVs span 0..3), so the 1 m grid stays continuous
+			# from the arena centre to the field edge
+			uvs.append(Vector2(ix / 40.0, iz / 40.0))
 	for iz in n - 1:
 		for ix in n - 1:
 			var a := iz * n + ix
@@ -220,6 +190,10 @@ func _build_terrain() -> void:
 	mi.mesh = mesh
 	mi.material_override = _terrain_material()
 	add_child(mi)
+	# Godot 4.7 HeightMapShape3D: no map_origin/map_size (removed) — the map
+	# is centred on the body origin, one world unit per sample, heights
+	# absolute (verified empirically: tests/v1/heightmap_probe.gd). Body at
+	# the arena origin => collision matches the visual mesh exactly.
 	var body := StaticBody3D.new()
 	var col := CollisionShape3D.new()
 	var shape := HeightMapShape3D.new()

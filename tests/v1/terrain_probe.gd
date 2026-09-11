@@ -38,39 +38,37 @@ func _run() -> void:
 	await _wait(30)
 	var arena: Node = e1.get_node("Arena")
 
-	# the terrain mesh (41 x 41 vertices) carries a 64 px tiled grid texture
+	# the terrain mesh (121 x 121 vertices, fix 4) carries the 640 px grid
+	# texture and IS the whole ground surface
 	var tmi: MeshInstance3D = null
+	var plane_count := 0
 	for c in arena.get_children():
-		# the terrain is the only arena child with an ArrayMesh (rocks use
-		# SphereMesh, the plain a PlaneMesh)
 		if c is MeshInstance3D and (c as MeshInstance3D).mesh is ArrayMesh:
 			tmi = c
+		if c is MeshInstance3D and (c as MeshInstance3D).mesh is PlaneMesh:
+			plane_count += 1
 	var has_grid := false
-	if tmi != null and tmi.material_override is StandardMaterial3D:
+	var field_wide := false
+	if tmi != null:
 		var tex: Texture2D = (tmi.material_override as StandardMaterial3D).albedo_texture
 		has_grid = tex is ImageTexture and (tex as ImageTexture).get_image().get_size() == Vector2i(640, 640)
+		field_wide = (tmi.mesh as ArrayMesh).get_aabb().size.x >= 100.0
 	check("terrain carries a 640 px grid texture (16 px per metre tile)", has_grid)
+	check("the ground is one wide field (>= 100 m), not a 40 m slab", field_wide)
+	check("no second floor: no PlaneMesh plain under the terrain", plane_count == 0)
 
-	# a wide, TEXTURED plain under the heightmap extends the horizon
-	# (playtest fix 3: an untextured plain read as a sky mirror)
-	var plain_ok := false
-	var plain_tex_ok := false
-	var plain_y_ok := false
+	# the collision heightmap covers the whole field (4.7: map centred on
+	# the body origin, one world unit per sample)
+	var col_ok := false
 	for c in arena.get_children():
-		if c is MeshInstance3D and (c as MeshInstance3D).mesh is PlaneMesh \
-			and ((c as MeshInstance3D).mesh as PlaneMesh).size.x >= 200.0:
-			plain_ok = true
-			plain_y_ok = (c as MeshInstance3D).position.y >= -2.0
-			var pm := (c as MeshInstance3D).material_override
-			if pm is StandardMaterial3D:
-				var ptex := (pm as StandardMaterial3D).albedo_texture
-				plain_tex_ok = ptex is ImageTexture \
-					and (ptex as ImageTexture).get_image().get_size() == Vector2i(256, 256)
-	check("500 m plain extends the horizon past the arena edge", plain_ok)
-	check("plain carries a 256 px ground texture (reads as ground, not sky)", plain_tex_ok)
-	check("plain sits near the terrain's low edge (no see-through gap)", plain_y_ok)
+		if c is StaticBody3D:
+			for cc in (c as StaticBody3D).get_children():
+				if cc is CollisionShape3D and (cc as CollisionShape3D).shape is HeightMapShape3D:
+					var hm: HeightMapShape3D = (cc as CollisionShape3D).shape
+					col_ok = hm.map_data.size() >= 121 * 121
+	check("collision heightmap covers the 120 m field (>= 121x121 samples)", col_ok)
 
-	# fog dense enough to fade the 40 m edge into the plain
+	# fog dense enough to fade the field edge into the horizon
 	var we: WorldEnvironment = null
 	for c in arena.get_children():
 		if c is WorldEnvironment:

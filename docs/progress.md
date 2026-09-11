@@ -856,3 +856,38 @@ grid crisp in the foreground, the edge view shows the plain's 4 m tile
 repeating to the fog line, and the horizon now reads as ground fading
 into haze. (A 60 m straight-down shot is ~96% fog by design, not a
 defect.) Full regression re-run green: 240 v1 + 71 2D.
+
+### 4 — one continuous ground (the plain was the wrong layer)
+
+The user's third report: the texture he sees is on the BOTTOM layer
+(the 500 m plain at y = -1.8, visible under the main ground at certain
+camera angles) while the rover sits on the main surface above it —
+"all you have done is ground the bottom layer, which will never be
+used." Diagnosis: fixes 3/3b textured the plain, but the plain is a
+dead second floor. Also verified along the way that the collision
+geometry was never the problem — Godot 4.7 removed
+`map_origin`/`map_size` from `HeightMapShape3D`; the map is centred on
+the body origin, one world unit per sample, absolute heights. The arena
+body sits at the origin, so collision already matched the visible mesh
+exactly (`tests/v1/heightmap_probe.gd` drops bodies at four points and
+confirms the convention empirically).
+
+Fix: there is now exactly ONE ground surface.
+
+- The terrain mesh is the whole visible field: 120 m (121 x 121
+  vertices), the arena relief (centre pad, edge hills, west ridge)
+  unchanged for r < 20, tapering to 0 between r = 20 and r = 30
+  (`height_at` gets a `taper = 1 - smoothstep(20, 30, d)`; every arena
+  placement is bit-identical).
+- Same 640 px / 16 px-per-metre grid texture, UVs now span 0..3 so the
+  1 m grid tiles continuously from the arena centre to the field edge —
+  no scale change, no visible seam.
+- The plain (and its `_plain_texture`/`_plain_material`) is deleted.
+  The horizon is the textured field fading into the existing fog
+  (96% at 60 m — the field edge at 60 m is invisible by design).
+- Collision heightmap grows with the field (121 x 121 samples) so
+  nothing can walk off the world.
+- `terrain_probe` re-pointed: wide field (>= 100 m), no PlaneMesh
+  second floor, heightmap >= 121^2 (5 checks).
+
+Full regression green: v1 240 checks across 16 probes + 2D smoke 71.
