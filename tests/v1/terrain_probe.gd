@@ -29,6 +29,21 @@ func _wipe() -> void:
 		if FileAccess.file_exists(gp):
 			DirAccess.remove_absolute(gp)
 
+## The anisotropy level as saved in project.godot (not the runtime value —
+## the engine clamps that to the active renderer's capability at startup,
+## and the headless renderer clamps it to 2).
+func _saved_aniso_level() -> int:
+	var f := FileAccess.open("res://project.godot", FileAccess.READ)
+	if f == null:
+		return 0
+	var lvl := 0
+	while not f.eof_reached():
+		var line := f.get_line().strip_edges()
+		if line.begins_with("textures/default_filters/anisotropic_filtering_level="):
+			lvl = int(line.split("=")[1])
+			break
+	return lvl
+
 func _run() -> void:
 	_wipe()
 	var es := ResourceLoader.load("res://scenes/v1/entry.tscn") as PackedScene
@@ -56,6 +71,33 @@ func _run() -> void:
 	check("terrain carries a 640 px grid texture (16 px per metre tile)", has_grid)
 	check("the ground is one wide field (>= 100 m), not a 40 m slab", field_wide)
 	check("no second floor: no PlaneMesh plain under the terrain", plane_count == 0)
+
+	# fix 5: the grid must survive glancing camera angles — wide lines (a
+	# 1 px / 6 cm line is sub-texel the moment the ground is sampled at a
+	# shallow angle) + anisotropic sampling (material + project level)
+	var line_wide := false
+	var aniso_ok := false
+	if tmi != null and tmi.material_override is StandardMaterial3D:
+		var tm := tmi.material_override as StandardMaterial3D
+		aniso_ok = tm.texture_filter == BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		var tex2: Texture2D = tm.albedo_texture
+		if tex2 is ImageTexture:
+			var img := (tex2 as ImageTexture).get_image()
+			var run := 0
+			while run < 16:
+				var p := img.get_pixel(run, 1)
+				var dl := Vector3(p.r - 0.68, p.g - 0.47, p.b - 0.34)
+				if dl.length() > 0.05:
+					break
+				run += 1
+			line_wide = run >= 4
+	check("grid lines are wide enough to survive minification (>= 4 px)", line_wide)
+	check("terrain material uses anisotropic mipmapped filtering", aniso_ok)
+	# the project level is read from project.godot itself: the engine clamps
+	# the runtime value to the renderer's capability at startup, so headless
+	# always reports the clamped number — the saved file value is what the
+	# player's GPU will actually receive
+	check("project.godot sets anisotropic filtering level >= 8", _saved_aniso_level() >= 8)
 
 	# the collision heightmap covers the whole field (4.7: map centred on
 	# the body origin, one world unit per sample)

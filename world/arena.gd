@@ -94,7 +94,16 @@ func _mat(c: Color) -> StandardMaterial3D:
 func _terrain_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = _grid_texture()
-	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	# ANISOTROPIC (with the mipmap chain): the player camera is nearly
+	# horizontal, so the ground in front of you is sampled at extreme
+	# minification. Without anisotropy the 1 m grid averages out on the flat
+	# ground you are driving on while it survives on steeper ground further
+	# away — the texture appears to live on a different face of the ground
+	# than the one under the rover (playtest fix 5). Anisotropy keeps it on
+	# the face you are looking at, at every angle. Requires
+	# rendering/textures/default_filters/anisotropic_filtering_level in
+	# project.godot (16).
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	m.roughness = 1.0
 	return m
 
@@ -103,9 +112,13 @@ func _terrain_material() -> StandardMaterial3D:
 ## surface reads as 1 m square placeholder tiles and distances are
 ## measurable. The 120 m field reuses the same image tiled (UVs span 0..3),
 ## so the 1 m grid is continuous from the arena to the field edge.
+## Fix 5: the lines are 6 px wide (37.5 cm of ground) — a 1 px line
+## (6 cm) is sub-texel as soon as the ground is sampled at a glancing
+## angle and the grid vanishes from the face you are looking at.
 func _grid_texture() -> ImageTexture:
 	const RES := 640
 	const PER_M := 16
+	const LINE := 6
 	var img := Image.create(RES, RES, false, Image.FORMAT_RGB8)
 	var base := Color(0.45, 0.26, 0.17)
 	var line := Color(0.68, 0.47, 0.34)
@@ -114,7 +127,7 @@ func _grid_texture() -> ImageTexture:
 			var r := fmod(sin(float(x) * 127.1 + float(y) * 311.7) * 43758.5453, 1.0)
 			var v := 1.0 + (r - 0.5) * 0.22
 			var c := Color(base.r * v, base.g * v, base.b * v)
-			if x % PER_M == 0 or y % PER_M == 0:
+			if x % PER_M < LINE or y % PER_M < LINE:
 				c = line
 			img.set_pixel(x, y, c)
 	img.generate_mipmaps()

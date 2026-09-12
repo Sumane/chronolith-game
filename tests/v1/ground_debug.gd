@@ -5,6 +5,8 @@ extends Node
 ##   gd_player.png — low player-style view over the arena
 ##   gd_top.png    — ortho straight down (the 1 m grid, visible or not)
 ##   gd_edge.png   — from the arena edge out over the plain to the horizon
+##   gd_glance.png — near-horizontal at rover height (the "wrong face"
+##                   angle): the grid must hold on the flat ground in front
 ## Run WITHOUT --headless:  godot --path . tests/v1/ground_debug.tscn
 
 func _ready() -> void:
@@ -69,6 +71,15 @@ func _run() -> void:
 	var cam3 := await _cam(Vector3(15.0, h + 3.0, 15.0), Vector3(30.0, 0.0, 30.0), 70.0, 0.0)
 	_shot("user://gd_edge.png")
 	cam3.queue_free()
+	await _wait(5)
+
+	# 4: fix-5 angle — near-horizontal, at rover height, looking across flat
+	# ground toward the arena relief (the "wrong face" report angle): the 1 m
+	# grid must be visible on the FLAT ground in front, not only on the
+	# steeper ground further away
+	var cam4 := await _cam(Vector3(0.0, 1.4, 12.0), Vector3(0.0, 0.3, -24.0), 70.0, 0.0)
+	_shot("user://gd_glance.png")
+	cam4.queue_free()
 	await _wait(5)
 
 	print("== ground debug: done ==")

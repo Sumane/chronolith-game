@@ -891,3 +891,33 @@ Fix: there is now exactly ONE ground surface.
   second floor, heightmap >= 121^2 (5 checks).
 
 Full regression green: v1 240 checks across 16 probes + 2D smoke 71.
+
+### 5 — the grid must hold at glancing angles (the "inverted face" report)
+
+The user's fourth report: the face of the ground that carries the grid is
+not the face the rover drives on — the texture appears on the far side of
+the relief coming down ("the visible face of the ground is inverted").
+Diagnosis (and the one mechanism that makes a texture appear and
+disappear with camera angle — the user's "visible at certain angles"
+note from day one): the player camera is nearly horizontal, so the flat
+ground in front is sampled at extreme minification. With a 1 px line
+(6 cm of ground) and no anisotropic filtering, the grid averages out on
+the face you are looking at while it survives on steeper ground further
+away — the texture appears to live on the other face of the ground.
+(Also verified: the mesh winding is NOT inverted — the triangle
+winding's right-hand normal is +Y, so the top face is the front face;
+the perception is purely a sampling artefact.)
+
+- Grid lines widened 1 px -> 6 px (6 cm -> 37.5 cm of ground) so the
+  grid survives to the deepest mipmap.
+- Terrain material: `TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC`
+  (the 4.7 enum name — `TEXTURE_FILTER_ANISOTROPIC` does not exist)
+  + `rendering/textures/default_filters/anisotropic_filtering_level=16`
+  in project.godot (the 4.7 key — the old
+  `anisotropic_filtering/enable|max` pair is gone).
+- `terrain_probe` locks it in: line width >= 4 px, material filter
+  anisotropic, project level >= 8.
+- `ground_debug` gains shot 4 (`gd_glance.png`): near-horizontal at
+  rover height across flat ground toward the relief — the grid must be
+  visible on the flat ground in front, not only on the steeper ground
+  behind it.

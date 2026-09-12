@@ -30,3 +30,9 @@ window/stretch/aspect="keep"
 
 renderer/rendering_method="mobile"
 renderer/rendering_method.mobile="gl_compatibility"
+# The ground grid must hold at glancing camera angles (the player camera is
+# nearly horizontal): without anisotropic filtering the 1 m grid minifies
+# away on flat ground while it survives on steeper ground — the texture
+# appears to "live" on a different face of the ground than the one you are
+# driving on (playtest fix 5)
+textures/default_filters/anisotropic_filtering_level=16
